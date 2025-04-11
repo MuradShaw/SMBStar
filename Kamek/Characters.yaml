@@ -1,0 +1,14 @@
+---
+source_files: [../src/Characters.S]
+hooks:
+  - name: ChangeJumpHeights
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x8012769c
+    target_func: 'updateJumpHeight'
+
+#  - name: BreakBlockIfWario
+#    type: branch_insn
+#    branch_type: b
+#    src_addr_pal: 0x8012769c
+#    target_func: 'breakBlockIfWario'

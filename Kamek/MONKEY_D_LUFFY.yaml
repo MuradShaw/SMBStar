@@ -1,0 +1,21 @@
+---
+source_files:
+  - ../src/MONKEYDLUFFY/origin.cpp
+  - ../src/MONKEYDLUFFY/camera.cpp
+  - ../src/MONKEYDLUFFY/map.cpp
+  
+hooks:
+  - name: OhGodIHopeThisWOrks
+    type: add_func_pointer
+    src_addr_pal: 0x8098DCF0
+    target_func: 'dOrigin_c::build(void)'
+
+  - name: BuildWorldCamera # WORLD_CAMERA
+    type: add_func_pointer
+    src_addr_pal: 0x8098EEC8
+    target_func: 'dWorldCamera_c::build(void)'
+
+  - name: BuildWMMap # WM_MAP
+    type: add_func_pointer
+    src_addr_pal: 0x80984710
+    target_func: 'dWMMap_c::build(void)'

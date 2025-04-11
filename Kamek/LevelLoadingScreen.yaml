@@ -1,0 +1,20 @@
+---
+source_files: [../src/LevelLoadingScreen.S, ../src/LevelLoadingScreen.cpp]
+hooks:
+  - name: extendLoadTime
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x8091f144
+    target_func: 'increaseWaitingTime'
+    
+  - name: SkipInputDetection
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x809205a8
+    target_func: 'skipInputDetection'
+    
+  - name: CharacterSelection
+    type: branch_insn
+    branch_type: bl
+    src_addr_pal: 0x809205c0
+    target_func: 'characterSelection(void)'

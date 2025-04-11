@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<levels>
+
+	<category name="Zone 1">
+		<level file="01-01" name="World 1-1" />
+		<level file="01-02" name="World 1-2" />
+		<level file="01-03" name="World 1-3" />
+		<level file="01-04" name="World 1-Tower" />
+	</category>
+
+</levels>

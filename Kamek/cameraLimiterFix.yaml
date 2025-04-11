@@ -1,0 +1,20 @@
+---
+source_files: [../src/cameraLimiterFix.S]
+hooks:
+  - name: LimiterFix
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x8007a950
+    target_func: 'limiterFix'
+    
+  - name: TopLimiterFix
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x8015683c
+    target_func: 'limiterFixTop'
+    
+  #- name: PreviousScreen
+  #  type: branch_insn
+  #  branch_type: b
+  #  src_addr_pal: 0x80156840
+   # target_func: 'updatePreviousScreen'
