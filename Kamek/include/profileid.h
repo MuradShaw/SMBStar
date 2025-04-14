@@ -528,6 +528,7 @@ enum
 	SpinPlatform = 503,
 	bigblock = 504,
 	CameraScrollLimiter = 505,
+	noteblock = 506,
 	
 	Num
 };
@@ -1322,6 +1323,7 @@ enum
 	SpinPlatform, //770
 	bigblock, //771
 	CameraScrollLimiter, //772
+	noteblock, //773
 
 	Num
 };

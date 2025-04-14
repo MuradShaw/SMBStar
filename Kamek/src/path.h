@@ -68,8 +68,12 @@ void dEnPath_c::endState_Wait() { OSReport("End Wait\n"); }
 void dEnPath_c::beginState_Init() {
 	OSReport("Begin Init\n");
 
-	this->waitForPlayer = this->settings >> 28 & 0b11;                       //Bit 19-20
-	if(this->waitForPlayer > 2) this->waitForPlayer = 0;
+	this->waitForPlayer = this->settings >> 8 & 0b11111111;   
+
+	if(this->waitForPlayer == 2 || this->waitForPlayer == 4) this->waitForPlayer = 0;
+	if(this->waitForPlayer == 3 || this->waitForPlayer == 5) this->waitForPlayer = 1;
+
+	OSReport("WaitForPlayer: %d\n", this->waitForPlayer);
 	
 	speed = (float)(this->settings >> 16 & 0b1111);						    //Bit 29-32
 	currentNodeNum = 0;						//Bit 33-40
@@ -405,7 +409,8 @@ void dPath_c::endState_Init() { OSReport("End Init\n"); }
 
 void dPath_c::beginState_FollowPath() { OSReport("Begin Follow\n"); }
 void dPath_c::executeState_FollowPath() {
-	//OSReport("Execute Follow: %d, %d\n", this->waitForPlayer, this->playerCollides);
+	//OSReport("Execute Follow\n");
+
 	if (stepsDone == stepCount) {
 		if (waitForPlayer == 0 || (waitForPlayer > 0 && playerCollides)) {
 			if (waitForPlayer == 1) {
@@ -418,7 +423,7 @@ void dPath_c::executeState_FollowPath() {
 			currentNodeNum++;
 			currentNode = nextNode;
 			nextNode = &course->railNode[rail->startNode + 1 + currentNodeNum];
-
+ 
 			if (rail->nodeCount == currentNodeNum + 1) {
 				if (!loop) {
 					acState.setState(&StateID_Done);

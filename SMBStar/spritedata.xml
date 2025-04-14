@@ -2693,10 +2693,9 @@
       <entry value="2">Large</entry>
 	 </list>
     <value nybble="8" title="Speed" comment="Don't use speed 0" />
-    <list nybble="5.3-5.4" title="Move Condition" comment="This determines the condition for the platform to start moving." >
+    <list nybble="0" title="Move Condition" comment="This determines the condition for the platform to start moving." >
       <entry value="0">Auto-start</entry>
       <entry value="1">Wait for one Player to start</entry>
-      <entry value="2">Wait for one player always to move</entry>
     </list>
   </sprite>
   

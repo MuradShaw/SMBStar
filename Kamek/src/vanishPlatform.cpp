@@ -51,6 +51,7 @@ class daVanishPlatform_c : public dEnPath_c {
 		int flashAnimTimer;
 		float originalScale;
 		float scaleOffset;
+		bool waitForPlayer;
 		
 		float initialPosx;
 		float initialPosy;
@@ -93,9 +94,10 @@ int daVanishPlatform_c::onCreate()
 	else if(this->respawnType == 3)
 		respawnTimer = 240;
 
-	if(type == 0)
+	// small, small*, medium, medium*, large, large*
+	if(type == 0 || type == 1)
 		this->originalScale = 25.2f;
-	else if(type == 1)
+	else if(type == 2 || type == 3)
 		this->originalScale = 42.0f;
 	else
 		this->originalScale = 67.2f;
@@ -177,8 +179,6 @@ int daVanishPlatform_c::onExecute()
 	model.setDrawMatrix(matrix);
 	model.setScale(&scale);
 	model.calcWorld(false);
-	
-	this->waitForPlayer = 0;
 
 	//else
 	//{
@@ -293,11 +293,17 @@ void daVanishPlatform_c::endState_Appear()
 void daVanishPlatform_c::beginState_Move()
 {
 	this->timer = 0;
-	this->weAreMoving = true;
 }
 void daVanishPlatform_c::executeState_Move()
 {
-	doStateChange(&StateID_Init);
+	dStateBase_c* currentState = this->acState.getCurrentState();
+
+	// If we're not moving and the path hasn't started yet, start it
+	if(!weAreMoving && (currentState != &dEnPath_c::StateID_Init)) 
+	{
+		doStateChange(&StateID_Init);
+		weAreMoving = true;
+	}
 }
 void daVanishPlatform_c::endState_Move()
 {}

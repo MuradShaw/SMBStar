@@ -104,3 +104,4 @@ modules:
   - processed/spindrift.yaml
   #- processed/spinplatform.yaml
   - processed/bigblock.yaml
+  - processed/noteblock.yaml

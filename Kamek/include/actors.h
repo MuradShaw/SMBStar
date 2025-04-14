@@ -776,7 +776,8 @@ enum Actors {
 	SpinDrift = 769,
 	SpinPlatform = 770,
 	bigblock = 771,
-	CameraScrollLimiter = 772
+	CameraScrollLimiter = 772,
+	noteblock = 773
 };
 
 struct Actor {
