@@ -1,5 +1,10 @@
 #include <common.h>
 #include <game.h>
+#include <g3dhax.h>
+#include <sfx.h>
+#include <profile.h>
+#include "boss.h"
+
 
 /**
     Note Block
@@ -10,10 +15,12 @@
     The block will slightly dip down when the player is on it, and spring up when the player jumps off of it.
  */
 
-const char *NoteBlockFileList[] = {"block_rotate", 0};
+const char *NoteBlockFileList[] = {"block_rotate", NULL};
 
 class daEnNoteBlock_c : public daEnBlockMain_c {
 public:
+    static dActor_c* build();
+
     Physics::Info physicsInfo;
 
     int onCreate();
@@ -26,10 +33,11 @@ public:
     m3d::mdl_c model;
 
     float originalY;
+    bool jumpable;
+    int timer;
 
-    bool playerOnBlock();
-
-    static daEnNoteBlock_c *build();
+    int playerOnBlock();
+    void bouncePlayerWhenJumpedOn(void *player);
 
     USING_STATES(daEnNoteBlock_c);
     DECLARE_STATE(Wait);
@@ -49,18 +57,21 @@ const SpriteData NoteBlockData = {ProfileId::noteblock, 8, -8, 0, 0, 0x100, 0x10
 Profile NoteBlockProfile(&daEnNoteBlock_c::build, SpriteId::noteblock, &NoteBlockData, ProfileId::noteblock, ProfileId::noteblock, "noteblock", NoteBlockFileList);
 
 // checks to see if a player is on the block via position check
-bool daEnNoteBlock_c::playerOnBlock() {
+// returns 0 if no player is on block
+// returns 1 if player is walking on block
+// returns 2 if player is about to jump from block
+int daEnNoteBlock_c::playerOnBlock() {
     for (int i = 0; i < 4; i++) {
 		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
-			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
-
-                if (player->pos.y - pos.y <= 1 && (player->pos.x > pos.x - 8 && player->pos.x < pos.x + 8))
-                        return true;
+            if(player->pos.x >= pos.x - 10 && player->pos.x <= pos.x + 10) {
+                if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
+                    return 1; // Player is walking on block
+                }
             }
         }
     }
     
-    return false;
+    return 0; // No player on block
 }
 
 int daEnNoteBlock_c::onCreate() {
@@ -91,6 +102,7 @@ int daEnNoteBlock_c::onCreate() {
     physics.addToList();
 
     originalY = pos.y;
+
     doStateChange(&StateID_Wait);
 
     return true;
@@ -105,6 +117,9 @@ int daEnNoteBlock_c::onExecute() {
     physics.update();
     blockUpdate();
     checkZoneBoundaries(0);
+
+    acState.execute();
+
     return true;
 }
 
@@ -120,52 +135,72 @@ int daEnNoteBlock_c::onDraw() {
     return true;
 }
 
-daEnNoteBlock_c *daEnNoteBlock_c::build() {
-    void *buffer = AllocFromGameHeap1(sizeof(daEnNoteBlock_c));
-    daEnNoteBlock_c *c = new(buffer) daEnNoteBlock_c;
-    return c;
+dActor_c *daEnNoteBlock_c::build() {
+    void *buf = AllocFromGameHeap1(sizeof(daEnNoteBlock_c));
+	return new(buf) daEnNoteBlock_c;
 }
 
 
 /* Wait State */
-int daEnNoteBlock_c::beginState_Wait() {}
+void daEnNoteBlock_c::beginState_Wait() {}
 
-int daEnNoteBlock_c::executeState_Wait() {
-    if (playerOnBlock()) {
+void daEnNoteBlock_c::executeState_Wait() {
+    if(playerOnBlock()) {
         doStateChange(&StateID_OnBlock);
     }
 }
 
-int daEnNoteBlock_c::endState_Wait() {}
+void daEnNoteBlock_c::endState_Wait() {}
 
 
 /* On Block State */
-int daEnNoteBlock_c::beginState_OnBlock() {}
+void daEnNoteBlock_c::beginState_OnBlock() {
+    this->pos.y -= 0.75f;
+}
 
-int daEnNoteBlock_c::executeState_OnBlock() {
-    if(originalY - this->pos.y < 1) {
-        this->pos.y -= 0.2f;
+void daEnNoteBlock_c::executeState_OnBlock() {
+    if(!playerOnBlock()) {
+        doStateChange(&StateID_OffBlock);
     }
 
-    if(!playerOnBlock()) {
+    for (int i = 0; i < 4; i++) {
+		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
+                if (!(strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Jump")))
+                    bouncePlayer(player, 5.0f);
+            }
+    }
+}
+
+void daEnNoteBlock_c::endState_OnBlock() {}
+
+
+/* Off Block State */
+void daEnNoteBlock_c::beginState_OffBlock() {
+    this->pos.y = originalY;
+}
+
+void daEnNoteBlock_c::executeState_OffBlock() {
+    doStateChange(&StateID_Wait);
+}
+
+void daEnNoteBlock_c::endState_OffBlock() {}
+
+
+/* Spring State */
+void daEnNoteBlock_c::beginState_Spring() {
+    this->pos.y += 0.75;
+    this->timer = 0;
+
+    jumpable = true;
+}
+
+void daEnNoteBlock_c::executeState_Spring() {
+    this->timer++;
+
+    if(timer >= 5) {
+        jumpable = false;
         doStateChange(&StateID_OffBlock);
     }
 }
 
-int daEnNoteBlock_c::endState_OnBlock() {}
-
-
-/* Off Block State */
-int daEnNoteBlock_c::beginState_OffBlock() {}
-
-int daEnNoteBlock_c::executeState_OffBlock() {
-    if(originalY - this->pos.y >= 0.2f) {
-        this->pos.y += 0.2f;
-    }
-    else {
-        this->pos.y = originalY;
-        doStateChange(&StateID_Wait);
-    }
-}
-
-int daEnNoteBlock_c::endState_OffBlock() {}
+void daEnNoteBlock_c::endState_Spring() {}
