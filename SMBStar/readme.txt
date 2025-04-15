@@ -1,8 +1,9 @@
-SMBStar Game Patch
+NewerSMBW Reggie! Game Patch BETA
+November 1, 2013
 ---------------------------------
 
 For use with Reggie! Next.
-Place this folder into reggiedata/games and then restart Reggie!.
+Place this NewerSMBW folder into reggiedata/games and then restart Reggie!.
 
 ---------------------------------
 Credits:

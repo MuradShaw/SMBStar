@@ -2687,16 +2687,15 @@
   
    <sprite id="490" name="Vanish Platform" notes="Path controlled platform that vanishes when it reaches the end of its path. From Galaxy 2. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
 	<value nybble="11-12" title="Path ID" />
-    <list nybble="9-10" title="Size" comment="Small: 3 blocks wide. Medium: 5 blocks wide. Large: 8 blocks wide" >
+    <list nybble="9-10" title="Size" comment="Small: 3 blocks wide. Medium: 5 blocks wide. Large: 8 blocks wide\n\nSizes marked with * wait for the player before starting to move." >
 	  <entry value="0">Small</entry>
-      <entry value="1">Medium</entry>
-      <entry value="2">Large</entry>
+    <entry value="1">Small*</entry>
+    <entry value="2">Medium</entry>
+    <entry value="3">Medium*</entry>
+    <entry value="4">Large</entry>
+    <entry value="5">Large*</entry>
 	 </list>
     <value nybble="8" title="Speed" comment="Don't use speed 0" />
-    <list nybble="0" title="Move Condition" comment="This determines the condition for the platform to start moving." >
-      <entry value="0">Auto-start</entry>
-      <entry value="1">Wait for one Player to start</entry>
-    </list>
   </sprite>
   
   <sprite id="491" name="Triple ? Block" notes="Long block that gives two coins along with a powerup. From NSMB2. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
@@ -2796,6 +2795,18 @@
       <entry value="0">Facing Down</entry>
       <entry value="1">Facing Up</entry>
     </list>
+  </sprite>
+
+  <sprite id="502" name="Spindrift" notes="Enemy from SM64. Floats around and launches mario into the air when jumped on. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+	<list nybble="5" title="Flight Type">
+		<entry value="0">Idle</entry>
+		<entry value="1">Left/Right</entry>
+		<entry value="2">Up/Down</entry>
+	</list>
+	<checkbox nybble="9.3" title="Starts Right" comment="If checked, the spindrift will start facing right."/>
+  </sprite>
+
+  <sprite id="506" name="Face Block" notes="A block with a face that launches players into the air when jumped on. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
   </sprite>
 </sprites>
 <!-- Thank you so much for a-playing my game! -->
