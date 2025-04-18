@@ -2418,8 +2418,9 @@ class daPlBase_c : public dStageActor_c {
 		REF_NINTENDO_STATE(Jump);
 		REF_NINTENDO_STATE(DemoInWaterTank);
 		REF_NINTENDO_STATE(IceDamage);
-		// HORIZON
+		// STAR
 		DECLARE_STATE(SpinFly);
+		DECLARE_STATE(NoteBlockLaunch);
 
 		static daPlBase_c *findByID(int id);
 };
