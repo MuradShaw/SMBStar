@@ -35,6 +35,7 @@ public:
     float originalY;
     bool jumpable;
     bool wasSteppedOn;
+    bool playerJumped;
     int timer;
 
     bool playersGoUp[4];
@@ -45,21 +46,13 @@ public:
 
     USING_STATES(daEnNoteBlock_c);
     DECLARE_STATE(Wait);
-
     DECLARE_STATE(GoUp);
     DECLARE_STATE(GoDown);
-
-    DECLARE_STATE(Spring);
 };
 
-CREATE_STATE(daEnNoteBlock_c, Wait);
-CREATE_STATE(daEnNoteBlock_c, GoUp);
-
-CREATE_STATE(daEnNoteBlock_c, GoDown);
-CREATE_STATE(daEnNoteBlock_c, Spring);
-
-// Add state to the player
-CREATE_STATE(daPlBase_c, NoteBlockLaunch);
+CREATE_STATE_E(daEnNoteBlock_c, Wait);
+CREATE_STATE_E(daEnNoteBlock_c, GoUp);
+CREATE_STATE_E(daEnNoteBlock_c, GoDown);
 
 const SpriteData NoteBlockData = {ProfileId::noteblock, 8, -8, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile NoteBlockProfile(&daEnNoteBlock_c::build, SpriteId::noteblock, &NoteBlockData, ProfileId::noteblock, ProfileId::noteblock, "noteblock", NoteBlockFileList);
@@ -160,7 +153,8 @@ int daEnNoteBlock_c::onExecute() {
             //OSReport("player current state: %s\n", player->states2.getCurrentState()->getName());
 
             if(playerIsGoUp(i) && !(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump"))) {
-                player->states2.setState(&daPlBase_c::StateID_NoteBlockLaunch);
+                bouncePlayer(player, 4.5f);
+                playerJumped = true;
             }
         }
     }
@@ -187,144 +181,26 @@ dActor_c *daEnNoteBlock_c::build() {
 
 
 /* Wait State */
-void daEnNoteBlock_c::beginState_Wait() {}
-
 void daEnNoteBlock_c::executeState_Wait() {}
 
-void daEnNoteBlock_c::endState_Wait() {}
-
-
 /* Going up after going down */
-void daEnNoteBlock_c::beginState_GoUp() {}
-
 void daEnNoteBlock_c::executeState_GoUp() {
-    this->pos.y += 0.25f;
+    this->pos.y += playerJumped ? 1.25f : 0.50f;
 
-    if(this->pos.y >= originalY + 1.50f)
+    float targetHeight = playerJumped ? originalY + 6.0f : originalY + 2.0f;
+    if(this->pos.y >= targetHeight) {
+        playerJumped = false;
         doStateChange(&StateID_GoDown);
+    }
 }
-
-void daEnNoteBlock_c::endState_GoUp() {}
 
 
 /* Going down after going up */
-void daEnNoteBlock_c::beginState_GoDown() {}
-
 void daEnNoteBlock_c::executeState_GoDown() {
-    this->pos.y -= 0.25f;
+    this->pos.y -= 0.50f;
 
     if(this->pos.y <= originalY) {
+        this->pos.y = originalY;
         doStateChange(&StateID_Wait);
     }
-}
-
-void daEnNoteBlock_c::endState_GoDown() {
-    this->pos.y = originalY;
-}
-
-
-/* Spring State */
-void daEnNoteBlock_c::beginState_Spring() {
-    this->pos.y += 0.75;
-    this->timer = 0;
-
-    jumpable = true;
-}
-
-void daEnNoteBlock_c::executeState_Spring() {
-    this->timer++;
-
-    if(timer >= 5) {
-        jumpable = false;
-        doStateChange(&StateID_GoDown);
-    }
-}
-
-void daEnNoteBlock_c::endState_Spring() {}
-
-// Stolen from Spindrift.cpp, change later
-bool playerIsFallingState2;
-int playerFlyTime2;
-
-void daPlBase_c::beginState_NoteBlockLaunch() {
-    this->speed.y = 5.0f;
-
-    playerFlyTime2 = 0;
-    playerIsFallingState2 = false;
-
-    // Start our anim
-    dPlayerModelHandler_c *pmh = (dPlayerModelHandler_c*)(((u32)this) + 0x2A60);
-    pmh->mdlClass->startAnimation(71, 1.0f, 0.0f, 0.0f); // Spin
-}
-
-void daPlBase_c::executeState_NoteBlockLaunch() {
-    
-    someFlightRelatedFunction(this); // Handles x movement apparently
-    //changePlayerAnimation(this);
-    //hipAttackStuffizoids(this);
-
-    int spinCounter = 7;
-    
-    // Already boosted up, now fall slowly
-    if(playerIsFallingState2)
-    {
-        if(this->speed.y < -1.0f)
-            //this->speed.y -= 0.0025f;
-        //else
-            this->speed.y = -0.35f;
-
-        // Only allow drill if we're in terminal velocity
-        if(this->speed.y == -0.35f)
-        {
-            dPlayerModelHandler_c *pmh = (dPlayerModelHandler_c*)(((u32)this) + 0x2A60);
-
-            // Get our controller
-            Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
-            
-            // Drill?
-            if(con->heldButtons & WPAD_DOWN)
-            {
-                this->speed.y = -4.35f; // Drill.
-
-                pmh->mdlClass->startAnimation(75, 1.0f, 0.0f, 0.0f); // Drill Spin
-            }
-            else
-            {
-                this->speed.y = -0.35f;
-
-                pmh->mdlClass->startAnimation(71, 1.0f, 0.0f, 0.0f); // Spin
-            }
-        }
-
-        spinCounter = 3;
-    }
-    else
-    {   
-        // Gravity
-        if(this->speed.y <= 1.0f)
-            playerIsFallingState2 = true;
-        else if(playerFlyTime2 <= 18)
-            this->speed.y = 5.0f;
-        else if(playerFlyTime2 > 18 && playerFlyTime2 <= 28)
-            this->speed.y = 3.5f;
-        else if(playerFlyTime2 > 28 && playerFlyTime2 <= 32)
-            this->speed.y = 1.5f;
-        //else
-        //    this->speed.y -= 0.005f;
-    }
-
-    // Is our player grounded?
-    if(this->collMgr.isOnTopOfTile())
-        this->states2.setState(&daPlBase_c::StateID_Jump);  // End spin fly
-
-    // Spin!
-    rot.y += (0x800 * spinCounter);
-
-    // Increment timer
-    playerFlyTime2++;
-}
-
-void daPlBase_c::endState_NoteBlockLaunch() {
-    playerIsFallingState2 = false;
-    playerFlyTime2 = 0;
 }
