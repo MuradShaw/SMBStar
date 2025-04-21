@@ -250,7 +250,7 @@ int dGoombrat_c::onCreate()
 	
 	this->resFile.data = getResource("kakibo", "g3d/kakibo.brres");
 	nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("kakibo");
-	bodyModel.setup(mdl, &allocator, 0x224, 1, 0);
+	bodyModel.setup(mdl, &allocator, 0x227, 1, 0);
 
 	SetupTextures_Enemy(&bodyModel, 0);
 

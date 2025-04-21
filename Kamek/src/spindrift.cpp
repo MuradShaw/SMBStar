@@ -416,7 +416,7 @@ void daPlBase_c::changePlayerAnimation(daPlBase_c *player)
 }
 
 void daPlBase_c::beginState_SpinFly() {
-    this->speed.y = 7.0f;
+    this->speed.y = 6.0f;
 
     playerFlyTime = 0;
     playerIsFallingState = false;
@@ -473,7 +473,7 @@ void daPlBase_c::executeState_SpinFly() {
         if(this->speed.y <= 1.0f)
             playerIsFallingState = true;
         else if(playerFlyTime <= 18)
-            this->speed.y = 7.0f;
+            this->speed.y = 6.0f;
         else if(playerFlyTime > 18 && playerFlyTime <= 28)
             this->speed.y = 3.5f;
         else if(playerFlyTime > 28 && playerFlyTime <= 32)

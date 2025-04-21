@@ -5,7 +5,6 @@
 #include <profile.h>
 #include "boss.h"
 
-
 /**
     Note Block
 
@@ -15,9 +14,17 @@
     The block will slightly dip down when the player is on it, and spring up when the player jumps off of it.
  */
 
-const char *NoteBlockFileList[] = {"block_rotate", NULL};
+const char *NoteBlockFileList[] = {"obj_block_bounce", NULL};
 
 class daEnNoteBlock_c : public daEnBlockMain_c {
+    mHeapAllocator_c allocator;
+    nw4r::g3d::ResFile resFile;
+    m3d::mdl_c model;
+    nw4r::g3d::ResAnmTexPat anmPat;
+    m3d::anmTexPat_c patAnimation;
+
+    void texPat_bindAnimChr_and_setUpdateRate(const char* name);
+
 public:
     static dActor_c* build();
 
@@ -28,19 +35,15 @@ public:
     int onExecute();
     int onDraw();
 
-    mHeapAllocator_c allocator;
-    nw4r::g3d::ResFile resFile;
-    m3d::mdl_c model;
-
     float originalY;
     bool jumpable;
     bool wasSteppedOn;
     bool playerJumped;
     int timer;
-
+    
     bool playersGoUp[4];
 
-    int updatePlayersGoUp();
+    int updatePlayersOnBlock();
     bool playerIsGoUp(int playerID);
     void bouncePlayerWhenJumpedOn(void *player);
 
@@ -57,8 +60,15 @@ CREATE_STATE_E(daEnNoteBlock_c, GoDown);
 const SpriteData NoteBlockData = {ProfileId::noteblock, 8, -8, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile NoteBlockProfile(&daEnNoteBlock_c::build, SpriteId::noteblock, &NoteBlockData, ProfileId::noteblock, ProfileId::noteblock, "noteblock", NoteBlockFileList);
 
+void daEnNoteBlock_c::texPat_bindAnimChr_and_setUpdateRate(const char* name) {
+	this->anmPat = this->resFile.GetResAnmTexPat(name);
+	this->patAnimation.bindEntry(&this->model, &anmPat, 0, 1);
+	this->model.bindAnim(&this->patAnimation);
+    this->patAnimation.setFrameForEntry(1, 0);
+}
+
 // checks to see if a player is on the block
-int daEnNoteBlock_c::updatePlayersGoUp() {
+int daEnNoteBlock_c::updatePlayersOnBlock() {
     bool anyPlayersGoUp = false;
     
     for (int i = 0; i < 4; i++) {
@@ -88,9 +98,28 @@ bool daEnNoteBlock_c::playerIsGoUp(int playerID) {
 int daEnNoteBlock_c::onCreate() {
     allocator.link(-1, GameHeaps[0], 0, 0x20);
 
-    resFile.data = getResource("block_rotate", "g3d/block_rotate.brres");
-    model.setup(resFile.GetResMdl("block_rotate"), &allocator, 0, 1, 0);
+    // randomly select which color to use
+    const char* brresNames[] = {
+        "g3d/block_bounce_red.brres",
+        "g3d/block_bounce_blue.brres",
+        "g3d/block_bounce_green.brres",
+        "g3d/block_bounce_yellow.brres"
+    };
+    
+    int randomIndex = GenerateRandomNumber(4);
+    this->resFile.data = getResource("obj_block_bounce", brresNames[randomIndex]);
+    nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("block_bounce");
+    model.setup(mdl, &allocator, 0x227, 1, 0);
+
     SetupTextures_MapObj(&model, 0);
+
+    this->anmPat = this->resFile.GetResAnmTexPat("sleep");
+    this->patAnimation.setup(mdl, anmPat, &this->allocator, 0, 1);
+    this->patAnimation.bindEntry(&this->model, &anmPat, 0, 1);
+    this->patAnimation.setFrameForEntry(0, 0);
+    this->patAnimation.setUpdateRateForEntry(0.0f, 0);
+    this->model.bindAnim(&this->patAnimation);
+    this->patAnimation.setFrameForEntry(1, 0);
 
     allocator.unlink();
 
@@ -119,6 +148,7 @@ int daEnNoteBlock_c::onCreate() {
     }
 
     wasSteppedOn = true;
+    playerJumped = false;
 
     doStateChange(&StateID_Wait);
 
@@ -135,13 +165,28 @@ int daEnNoteBlock_c::onExecute() {
     blockUpdate();
     checkZoneBoundaries(0);
 
+    matrix.translation(pos.x, pos.y, pos.z);
+	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
+
+	model.setDrawMatrix(matrix);
+	model.setScale(&scale);
+	model.calcWorld(false);
+
+	model._vf1C();
+
     acState.execute();
 
     dStateBase_c* currentState = this->acState.getCurrentState();
 
-    if(updatePlayersGoUp()) 
+    if(this->pos.y == originalY) 
+        texPat_bindAnimChr_and_setUpdateRate("sleep");
+        
+    if(updatePlayersOnBlock()) 
+    {
         this->pos.y = originalY - 0.75f;
-    else if(!updatePlayersGoUp() && !wasSteppedOn) {
+        texPat_bindAnimChr_and_setUpdateRate("wake");
+    }
+    else if(!updatePlayersOnBlock() && !wasSteppedOn) {
         wasSteppedOn = true;
         if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait")))
             doStateChange(&StateID_GoUp);
@@ -152,7 +197,10 @@ int daEnNoteBlock_c::onExecute() {
             //OSReport("Player %d is on block: %d\n", i, playerIsGoUp(i));
             //OSReport("player current state: %s\n", player->states2.getCurrentState()->getName());
 
-            if(playerIsGoUp(i) && !(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump"))) {
+            if(playerIsGoUp(i) && !(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump")))
+            {
+                texPat_bindAnimChr_and_setUpdateRate("bounce");
+
                 bouncePlayer(player, 4.5f);
                 playerJumped = true;
             }
