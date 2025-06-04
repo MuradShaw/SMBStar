@@ -84,6 +84,7 @@ modules:
   - processed/apDebug.yaml
   - processed/smw_throws.yaml
   - cameraScrollLimiter.yaml
+  - processed/quickhax.yaml
   
   # Actors
   - processed/powerstar.yaml
