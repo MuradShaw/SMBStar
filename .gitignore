@@ -8,6 +8,7 @@ Kamek/kamek_jpn.x
 Kamek/kamek_jpn2.x
 Kamek/tools/__pycache__
 Kamek/tools/devkitPPC
+Kamek/include/dialoge.h
 
 star.json
 Addresses.asm

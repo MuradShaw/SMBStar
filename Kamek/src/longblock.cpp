@@ -82,9 +82,9 @@ int daLongBlock_c::onCreate() {
 	blockInit(pos.y);
 
 	physicsInfo.x1 = -24;
-	physicsInfo.y1 = 8;
+	physicsInfo.y1 = 16;
 	physicsInfo.x2 = 24;
-	physicsInfo.y2 = -8;
+	physicsInfo.y2 = 0;
 
 	physicsInfo.otherCallback1 = &daEnBlockMain_c::OPhysicsCallback1;
 	physicsInfo.otherCallback2 = &daEnBlockMain_c::OPhysicsCallback2;

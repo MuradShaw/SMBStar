@@ -47,7 +47,10 @@ class dGoombrat_c : public dEn_c {
 	void _vf148();
 	void _vf14C();
 	bool CreateIceActors();
-	
+	void _vf5C();
+
+	float nearestPlayerDistance();
+
 	bool loaded;
 	
 	public: static dActor_c *build();
@@ -77,6 +80,7 @@ dActor_c* dGoombrat_c::build() {
 }
 
 extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
+extern "C" void changePosAngle(VEC3 *, S16Vec *, int);
 
 void dGoombrat_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
@@ -156,6 +160,31 @@ extern "C" void DoStuffAndMarkDead(dStageActor_c *actor, Vec vector, float unk);
 extern "C" bool HandlesEdgeTurns(dEn_c* actor);
 extern "C" bool SpawnEffect(const char*, int, Vec*, S16Vec*, Vec*);
 	
+void dGoombrat_c::_vf5C() {
+    // this is something EVERYONE gets wrong
+    // newer does a crappy version of this in a "updateModelMatricies" function
+    // you're supposed to do it like this in finalUpdate/_vf5C
+    Mtx someMatrix;
+    Mtx thirdMatrix;
+
+    changePosAngle(&pos, &rot, 1);
+    PSMTXTrans(matrix, pos.x, pos.y, pos.z);
+    matrix.applyRotationY(&rot.y);
+    
+    PSMTXTrans(someMatrix, 0.0, pos_delta2.y, 0.0);
+    PSMTXConcat(matrix, someMatrix, matrix);
+    matrix.applyRotationX(&rot.x);
+
+    PSMTXTrans(thirdMatrix, 0.0, -pos_delta2.y, 0.0);
+    PSMTXConcat(matrix, thirdMatrix, matrix);
+    matrix.applyRotationZ(&rot.z);
+
+    bodyModel.setDrawMatrix(matrix);
+    bodyModel.setScale(initialScale.x, initialScale.y, initialScale.z);
+    bodyModel.calcWorld(false);
+    return;
+}
+
 bool dGoombrat_c::CreateIceActors()
 {
 	struct DoSomethingCool my_struct = { 0, this->pos, {1.5, 1.5, 1.5}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -223,6 +252,8 @@ bool dGoombrat_c::willWalkOntoSuitableGround(float delta) {
 }
 
 void dGoombrat_c::updateModelMatrices() {
+	return;
+
 	matrix.translation(pos.x, pos.y, pos.z);
 	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
 
@@ -287,6 +318,10 @@ int dGoombrat_c::onCreate()
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
 	
+	pos_delta2.x = 0.0;
+    pos_delta2.y = 8.0;
+    pos_delta2.z = 0.0;
+	
 	this->rot.x = 0;
 	this->rot.y = 0xD800;
 	this->rot.z = 0; 
@@ -333,6 +368,9 @@ int dGoombrat_c::onDraw() {
 }
 
 int dGoombrat_c::onExecute() {
+	if (nearestPlayerDistance() > 600.0f)
+		return true;
+	
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
@@ -418,6 +456,8 @@ void dGoombrat_c::beginState_Turn()
 }
 void dGoombrat_c::executeState_Turn()
 {
+	collMgr.calculateBelowCollisionWithSmokeEffect();
+
 	u16 rotationAmount = (this->direction) ? 0xD800 : 0x2800;
 	int weDoneHere = SmoothRotation(&this->rot.y, rotationAmount, 0x150);
 	
@@ -449,3 +489,19 @@ void dGoombrat_c::executeState_Die()
 }
 void dGoombrat_c::endState_Die()
 {}
+
+float dGoombrat_c::nearestPlayerDistance() {
+	float bestSoFar = 10000.0f;
+
+	for (int i = 0; i < 4; i++) {
+		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
+			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
+				float thisDist = abs(player->pos.x - pos.x);
+				if (thisDist < bestSoFar)
+					bestSoFar = thisDist;
+			}
+		}
+	}
+
+	return bestSoFar;
+}

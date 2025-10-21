@@ -41,6 +41,8 @@ dActor_c* daGalaxyShellSpawner_c::build() {
 
 int daGalaxyShellSpawner_c::onCreate()
 {
+	OSReport("GALAXY SHELL SPAWNER");
+
 	shellOnlySettings = (0 | (0 << 2) | (1 << 4) | (0 << 6) | (0 << 8) | (0 << 10) | (0 << 12) | (0 << 14));
 	daShell = (dStageActor_c*)CreateActor(54, shellOnlySettings, this->pos, 0, 0);
 	shellID = daShell->id;

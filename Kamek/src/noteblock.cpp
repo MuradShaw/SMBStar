@@ -1,6 +1,5 @@
 #include <common.h>
 #include <game.h>
-#include <g3dhax.h>
 #include <sfx.h>
 #include <profile.h>
 #include "boss.h"
@@ -12,18 +11,19 @@
 
     Blocks with faces on them that the player can walk on, and when the player jumps on them, they launch the player into the air.
     The block will slightly dip down when the player is on it, and spring up when the player jumps off of it.
+    
+    Uses different tileset tiles to show different states and colors:
+    - Sleep: Default face (tiles 0xf6, 0xe6, 0xe9)
+    - Wake: Different face when player is on it (tiles 0xf8, 0xe8, 0xeb) 
+    - Bounce: Special face when player jumps (tiles 0xf7, 0xe7, 0xea)
+    
+    Colors: Yellow (0xf6-0xf8), Red (0xe6-0xe8), Purple (0xe9-0xeb)
  */
 
-const char *NoteBlockFileList[] = {"obj_block_bounce", NULL};
+const char *NoteBlockFileList[] = {NULL};
 
 class daEnNoteBlock_c : public daEnBlockMain_c {
-    mHeapAllocator_c allocator;
-    nw4r::g3d::ResFile resFile;
-    m3d::mdl_c model;
-    nw4r::g3d::ResAnmTexPat anmPat;
-    m3d::anmTexPat_c patAnimation;
-
-    void texPat_bindAnimChr_and_setUpdateRate(const char* name);
+    TileRenderer tile;
 
 public:
     static dActor_c* build();
@@ -33,7 +33,6 @@ public:
     int onCreate();
     int onDelete();
     int onExecute();
-    int onDraw();
 
     float originalY;
     bool jumpable;
@@ -41,11 +40,35 @@ public:
     bool playerJumped;
     int timer;
     
+    // Tile animation states
+    enum TileState {
+        TILE_SLEEP = 0,
+        TILE_WAKE = 1,
+        TILE_BOUNCE = 2
+    };
+    TileState currentTileState;
+    int bounceTimer; // Timer for bounce state
+    
+    // Color variants
+    enum Color {
+        COLOR_YELLOW = 0,
+        COLOR_RED = 1,
+        COLOR_PURPLE = 2
+    };
+    Color selectedColor;
+
+    void blockWasHit(bool isDown);
+    void calledWhenUpMoveExecutes();
+	void calledWhenDownMoveExecutes();
+
+    float nearestPlayerDistance();
+
     bool playersGoUp[4];
 
     int updatePlayersOnBlock();
     bool playerIsGoUp(int playerID);
     void bouncePlayerWhenJumpedOn(void *player);
+    void updateTileState(TileState newState);
 
     USING_STATES(daEnNoteBlock_c);
     DECLARE_STATE(Wait);
@@ -60,12 +83,19 @@ CREATE_STATE_E(daEnNoteBlock_c, GoDown);
 const SpriteData NoteBlockData = {ProfileId::noteblock, 8, -8, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile NoteBlockProfile(&daEnNoteBlock_c::build, SpriteId::noteblock, &NoteBlockData, ProfileId::noteblock, ProfileId::noteblock, "noteblock", NoteBlockFileList);
 
-void daEnNoteBlock_c::texPat_bindAnimChr_and_setUpdateRate(const char* name) {
-	this->anmPat = this->resFile.GetResAnmTexPat(name);
-	this->patAnimation.bindEntry(&this->model, &anmPat, 0, 1);
-	this->model.bindAnim(&this->patAnimation);
-    this->patAnimation.setFrameForEntry(1, 0);
-}
+// Tile numbers for different states and colors
+// Each color has 3 tiles: [SLEEP, BOUNCE, WAKE]
+static const u16 TileNumbers[3][3] = {
+    // Yellow (COLOR_YELLOW)
+    {0xf6, 0xf7, 0xf8},
+    
+    // Red (COLOR_RED) 
+    {0xe6, 0xe7, 0xe8},
+    
+    // Purple (COLOR_PURPLE)
+    {0xe9, 0xea, 0xeb}
+};
+
 
 // checks to see if a player is on the block
 int daEnNoteBlock_c::updatePlayersOnBlock() {
@@ -95,34 +125,14 @@ bool daEnNoteBlock_c::playerIsGoUp(int playerID) {
     }
 }
 
+void daEnNoteBlock_c::updateTileState(TileState newState) {
+    if (currentTileState != newState) {
+        currentTileState = newState;
+        tile.tileNumber = TileNumbers[selectedColor][newState];
+    }
+}
+
 int daEnNoteBlock_c::onCreate() {
-    allocator.link(-1, GameHeaps[0], 0, 0x20);
-
-    // randomly select which color to use
-    const char* brresNames[] = {
-        "g3d/block_bounce_red.brres",
-        "g3d/block_bounce_blue.brres",
-        "g3d/block_bounce_green.brres",
-        "g3d/block_bounce_yellow.brres"
-    };
-    
-    int randomIndex = GenerateRandomNumber(4);
-    this->resFile.data = getResource("obj_block_bounce", brresNames[randomIndex]);
-    nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("block_bounce");
-    model.setup(mdl, &allocator, 0x227, 1, 0);
-
-    SetupTextures_MapObj(&model, 0);
-
-    this->anmPat = this->resFile.GetResAnmTexPat("sleep");
-    this->patAnimation.setup(mdl, anmPat, &this->allocator, 0, 1);
-    this->patAnimation.bindEntry(&this->model, &anmPat, 0, 1);
-    this->patAnimation.setFrameForEntry(0, 0);
-    this->patAnimation.setUpdateRateForEntry(0.0f, 0);
-    this->model.bindAnim(&this->patAnimation);
-    this->patAnimation.setFrameForEntry(1, 0);
-
-    allocator.unlink();
-
     blockInit(pos.y);
 
     physicsInfo.x1 = -8;
@@ -141,7 +151,20 @@ int daEnNoteBlock_c::onCreate() {
     physics.callback3 = &daEnBlockMain_c::PhysicsCallback3;
     physics.addToList();
 
+    // Setup TileRenderer
+    TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+    list->add(&tile);
+
+    // Randomly select a color variant
+    selectedColor = (Color)GenerateRandomNumber(3); // 0-2 for yellow, red, purple
+
+    tile.x = pos.x - 8;
+    tile.y = -(16 + pos.y);
+    tile.tileNumber = TileNumbers[selectedColor][TILE_SLEEP]; // Start with sleep state
+
     originalY = pos.y;
+    currentTileState = TILE_SLEEP;
+    bounceTimer = 0;
 
     for(int i = 0; i < 4; i++) {
         this->playersGoUp[i] = false;
@@ -150,12 +173,15 @@ int daEnNoteBlock_c::onCreate() {
     wasSteppedOn = true;
     playerJumped = false;
 
-    doStateChange(&StateID_Wait);
+    doStateChange(&daEnNoteBlock_c::StateID_Wait);
 
     return true;
 }
 
 int daEnNoteBlock_c::onDelete() {
+    TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+    list->remove(&tile);
+    
     physics.removeFromList();
     return true;
 }
@@ -165,31 +191,39 @@ int daEnNoteBlock_c::onExecute() {
     blockUpdate();
     checkZoneBoundaries(0);
 
-    matrix.translation(pos.x, pos.y, pos.z);
-	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
-
-	model.setDrawMatrix(matrix);
-	model.setScale(&scale);
-	model.calcWorld(false);
-
-	model._vf1C();
+    // Update tile position
+    tile.setPosition(pos.x-8, -(8+pos.y), pos.z);
+    tile.setVars(scale.x);
 
     acState.execute();
 
     dStateBase_c* currentState = this->acState.getCurrentState();
 
-    if(this->pos.y == originalY) 
-        texPat_bindAnimChr_and_setUpdateRate("sleep");
+    // Update tile state based on block state
+    if(this->pos.y == originalY) {
+        updateTileState(TILE_SLEEP);
+    }
         
     if(updatePlayersOnBlock()) 
     {
         this->pos.y = originalY - 0.75f;
-        texPat_bindAnimChr_and_setUpdateRate("wake");
+        if(currentTileState != TILE_BOUNCE) {
+            updateTileState(TILE_WAKE);
+        }
     }
     else if(!updatePlayersOnBlock() && !wasSteppedOn) {
         wasSteppedOn = true;
         if(!(strcmp(currentState->getName(), "daEnNoteBlock_c::StateID_Wait")))
             doStateChange(&StateID_GoUp);
+    }
+    
+    // Handle bounce timer
+    if(currentTileState == TILE_BOUNCE) {
+        bounceTimer++;
+        if(bounceTimer > 10) { // Bounce state lasts for 10 frames
+            bounceTimer = 0;
+            updateTileState(TILE_WAKE);
+        }
     }
 
     for (int i = 0; i < 4; i++) {
@@ -199,8 +233,8 @@ int daEnNoteBlock_c::onExecute() {
 
             if(playerIsGoUp(i) && !(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump")))
             {
-                texPat_bindAnimChr_and_setUpdateRate("bounce");
-
+                updateTileState(TILE_BOUNCE);
+                bounceTimer = 0; // Reset bounce timer
                 bouncePlayer(player, 4.5f);
                 playerJumped = true;
             }
@@ -210,26 +244,40 @@ int daEnNoteBlock_c::onExecute() {
     return true;
 }
 
-int daEnNoteBlock_c::onDraw() {
-    matrix.translation(pos.x, pos.y, pos.z);
-    matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
-
-    model.setDrawMatrix(matrix);
-    model.setScale(&scale);
-    model.calcWorld(false);
-    model.scheduleForDrawing();
-
-    return true;
-}
 
 dActor_c *daEnNoteBlock_c::build() {
     void *buf = AllocFromGameHeap1(sizeof(daEnNoteBlock_c));
 	return new(buf) daEnNoteBlock_c;
 }
 
+void daEnNoteBlock_c::blockWasHit(bool isDown) {
+	pos.y = initialY;
+
+    doStateChange(&StateID_GoUp);
+}
+
+void daEnNoteBlock_c::calledWhenUpMoveExecutes() {
+	if (initialY >= pos.y)
+		blockWasHit(false);
+}
+
+void daEnNoteBlock_c::calledWhenDownMoveExecutes() {
+	if (initialY <= pos.y)
+		blockWasHit(true);
+}
 
 /* Wait State */
-void daEnNoteBlock_c::executeState_Wait() {}
+void daEnNoteBlock_c::executeState_Wait() {
+    int result = blockResult();
+
+	if (result == 0)
+		return;
+
+	if (result == 1) {
+		doStateChange(&daEnBlockMain_c::StateID_UpMove);
+		anotherFlag = 2;
+    }
+}
 
 /* Going up after going down */
 void daEnNoteBlock_c::executeState_GoUp() {
@@ -251,4 +299,20 @@ void daEnNoteBlock_c::executeState_GoDown() {
         this->pos.y = originalY;
         doStateChange(&StateID_Wait);
     }
+}
+
+float daEnNoteBlock_c::nearestPlayerDistance() {
+	float bestSoFar = 10000.0f;
+
+	for (int i = 0; i < 4; i++) {
+		if (dAcPy_c *player = dAcPy_c::findByID(i)) {
+			if (strcmp(player->states2.getCurrentState()->getName(), "dAcPy_c::StateID_Balloon")) {
+				float thisDist = abs(player->pos.x - pos.x);
+				if (thisDist < bestSoFar)
+					bestSoFar = thisDist;
+			}
+		}
+	}
+
+	return bestSoFar;
 }

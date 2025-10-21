@@ -74,8 +74,9 @@ modules:
   
   # WM
   # - processed/MONKEY_D_LUFFY.yaml
-  # - processed/LevelSelect.yaml
+  - processed/LevelSelect.yaml
   # - processed/LevelLoadingScreen.yaml
+  # - processed/hubworld.yaml
 
   
   # Other
@@ -89,6 +90,7 @@ modules:
   # Actors
   - processed/powerstar.yaml
   - processed/goombrat.yaml
+  - processed/unagi.yaml
   - processed/eventCoin.yaml
   - processed/vanishPlatform.yaml
   - processed/longblock.yaml
@@ -106,3 +108,5 @@ modules:
   #- processed/spinplatform.yaml
   - processed/bigblock.yaml
   - processed/noteblock.yaml
+  - processed/painting.yaml
+  - processed/clapatrap.yaml

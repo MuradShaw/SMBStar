@@ -1,0 +1,9 @@
+---
+source_files:
+  - ../src/LevelSelection/levelSelect.cpp
+  
+hooks:
+  - name: OhGodIHopeThisWOrks
+    type: add_func_pointer
+    src_addr_pal: 0x8098DCF0
+    target_func: 'dLevelSelection_c::build(void)'

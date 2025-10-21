@@ -2,9 +2,13 @@
 #include <game.h>
 #include <sfx.h>
 #include "msgbox.h"
+#include "dialoge.h"
+#include <g3dhax.h>
 
 // Replaces: EN_LIFT_ROTATION_HALF (Sprite 107; Profile ID 481 @ 80AF96F8)
 
+int messageIndex = 0;
+int gid = 0;
 
 dMsgBoxManager_c *dMsgBoxManager_c::instance = 0;
 dMsgBoxManager_c *dMsgBoxManager_c::build() {
@@ -115,6 +119,7 @@ void dMsgBoxManager_c::showMessage(int id, bool canCancel, int delay) {
 	header_s *data = (header_s*)msgDataLoader.buffer;
 
 	const wchar_t *title = 0, *msg = 0;
+	gid = id;
 
 	for (int i = 0; i < data->count; i++) {
 		if (data->entry[i].id == id) {
@@ -126,17 +131,18 @@ void dMsgBoxManager_c::showMessage(int id, bool canCancel, int delay) {
 
 	if (title == 0) {
 		OSReport("Message Box: Message %08x not found\n", id);
-		return;
+		//return;
 	}
 
-	layout.findTextBoxByName("T_title")->SetString(title);
-	layout.findTextBoxByName("T_msg")->SetString(msg);
+	layout.findTextBoxByName("T_title")->SetString(L"");
+	layout.findTextBoxByName("T_msg")->SetString(messages[id][messageIndex]);
 
 	this->canCancel = canCancel;
 	this->delay = delay;
 	layout.findPictureByName("button")->SetVisible(canCancel);
 
-	state.setState(&StateID_BoxAppearWait);
+	if(messageIndex == 0)
+		state.setState(&StateID_BoxAppearWait);
 }
 
 
@@ -170,7 +176,17 @@ void dMsgBoxManager_c::executeState_ShownWait() {
 		int nowPressed = Remocon_GetPressed(GetActiveRemocon());
 
 		if (nowPressed & WPAD_TWO)
-			state.setState(&StateID_BoxDisappearWait);
+		{
+			messageIndex++;
+			
+			OSReport("GID %p", gid);
+			OSReport("Size %p", (sizeof(messages[gid]) / sizeof(messages[gid][0])));
+
+			if (messages[gid][messageIndex] != NULL)
+				showMessage(settings);
+			else
+				state.setState(&StateID_BoxDisappearWait);
+		}
 	}
 
 	if (delay > 0) {
@@ -186,6 +202,8 @@ void dMsgBoxManager_c::endState_ShownWait() { }
 CREATE_STATE(dMsgBoxManager_c, BoxDisappearWait);
 
 void dMsgBoxManager_c::beginState_BoxDisappearWait() {
+	messageIndex = 0;
+	
 	layout.enableNonLoopAnim(ANIM_BOX_DISAPPEAR);
 
 	nw4r::snd::SoundHandle handle;
@@ -216,145 +234,142 @@ void dMsgBoxManager_c::endState_BoxDisappearWait() {
 /*****************************************************************************/
 // Replaces: EN_BLUR (Sprite 152; Profile ID 603 @ 80ADD890)
 
-
 class daEnMsgBlock_c : public daEnBlockMain_c {
-public:
-	TileRenderer tile;
-	Physics::Info physicsInfo;
-
-	int onCreate();
-	int onDelete();
-	int onExecute();
-
-	void calledWhenUpMoveExecutes();
-	void calledWhenDownMoveExecutes();
-
-	void blockWasHit(bool isDown);
-
-	USING_STATES(daEnMsgBlock_c);
-	DECLARE_STATE(Wait);
-
-	static daEnMsgBlock_c *build();
-};
-
-
-CREATE_STATE(daEnMsgBlock_c, Wait);
-
-
-int daEnMsgBlock_c::onCreate() {
-	blockInit(pos.y);
-
-	physicsInfo.x1 = -8;
-	physicsInfo.y1 = 16;
-	physicsInfo.x2 = 8;
-	physicsInfo.y2 = 0;
-
-	physicsInfo.otherCallback1 = &daEnBlockMain_c::OPhysicsCallback1;
-	physicsInfo.otherCallback2 = &daEnBlockMain_c::OPhysicsCallback2;
-	physicsInfo.otherCallback3 = &daEnBlockMain_c::OPhysicsCallback3;
-
-	physics.setup(this, &physicsInfo, 3, currentLayerID);
-	physics.flagsMaybe = 0x260;
-	physics.callback1 = &daEnBlockMain_c::PhysicsCallback1;
-	physics.callback2 = &daEnBlockMain_c::PhysicsCallback2;
-	physics.callback3 = &daEnBlockMain_c::PhysicsCallback3;
-	physics.addToList();
-
-	TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
-	list->add(&tile);
-
-	tile.x = pos.x - 8;
-	tile.y = -(16 + pos.y);
-	tile.tileNumber = 0x98;
-
-	doStateChange(&daEnMsgBlock_c::StateID_Wait);
-
-	return true;
-}
-
-
-int daEnMsgBlock_c::onDelete() {
-	TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
-	list->remove(&tile);
-
-	physics.removeFromList();
-
-	return true;
-}
-
-
-int daEnMsgBlock_c::onExecute() {
-	acState.execute();
-	physics.update();
-	blockUpdate();
-
-	tile.setPosition(pos.x-8, -(16+pos.y), pos.z);
-	tile.setVars(scale.x);
-
-	// now check zone bounds based on state
-	if (acState.getCurrentState()->isEqual(&StateID_Wait)) {
-		checkZoneBoundaries(0);
-	}
-
-	return true;
-}
-
-
-daEnMsgBlock_c *daEnMsgBlock_c::build() {
-	void *buffer = AllocFromGameHeap1(sizeof(daEnMsgBlock_c));
-	return new(buffer) daEnMsgBlock_c;
-}
-
-
-void daEnMsgBlock_c::blockWasHit(bool isDown) {
-	pos.y = initialY;
-
-	if (dMsgBoxManager_c::instance)
-		dMsgBoxManager_c::instance->showMessage(settings);
-	else
-		Delete(false);
-
-	physics.setup(this, &physicsInfo, 3, currentLayerID);
-	physics.addToList();
+	public:
+		TileRenderer tile;
+		Physics::Info physicsInfo;
 	
-	doStateChange(&StateID_Wait);
-}
-
-
-
-void daEnMsgBlock_c::calledWhenUpMoveExecutes() {
-	if (initialY >= pos.y)
-		blockWasHit(false);
-}
-
-void daEnMsgBlock_c::calledWhenDownMoveExecutes() {
-	if (initialY <= pos.y)
-		blockWasHit(true);
-}
-
-
-
-void daEnMsgBlock_c::beginState_Wait() {
-}
-
-void daEnMsgBlock_c::endState_Wait() {
-}
-
-void daEnMsgBlock_c::executeState_Wait() {
-	int result = blockResult();
-
-	if (result == 0)
-		return;
-
-	if (result == 1) {
-		doStateChange(&daEnBlockMain_c::StateID_UpMove);
-		anotherFlag = 2;
-		isGroundPound = false;
-	} else {
-		doStateChange(&daEnBlockMain_c::StateID_DownMove);
-		anotherFlag = 1;
-		isGroundPound = true;
+		int onCreate();
+		int onDelete();
+		int onExecute();
+	
+		void calledWhenUpMoveExecutes();
+		void calledWhenDownMoveExecutes();
+	
+		void blockWasHit(bool isDown);
+	
+		USING_STATES(daEnMsgBlock_c);
+		DECLARE_STATE(Wait);
+	
+		static daEnMsgBlock_c *build();
+	};
+	
+	
+	CREATE_STATE(daEnMsgBlock_c, Wait);
+	
+	
+	int daEnMsgBlock_c::onCreate() {
+		blockInit(pos.y);
+	
+		physicsInfo.x1 = -8;
+		physicsInfo.y1 = 16;
+		physicsInfo.x2 = 8;
+		physicsInfo.y2 = 0;
+	
+		physicsInfo.otherCallback1 = &daEnBlockMain_c::OPhysicsCallback1;
+		physicsInfo.otherCallback2 = &daEnBlockMain_c::OPhysicsCallback2;
+		physicsInfo.otherCallback3 = &daEnBlockMain_c::OPhysicsCallback3;
+	
+		physics.setup(this, &physicsInfo, 3, currentLayerID);
+		physics.flagsMaybe = 0x260;
+		physics.callback1 = &daEnBlockMain_c::PhysicsCallback1;
+		physics.callback2 = &daEnBlockMain_c::PhysicsCallback2;
+		physics.callback3 = &daEnBlockMain_c::PhysicsCallback3;
+		physics.addToList();
+	
+		TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+		list->add(&tile);
+	
+		tile.x = pos.x - 8;
+		tile.y = -(16 + pos.y);
+		tile.tileNumber = 0x98;
+	
+		doStateChange(&daEnMsgBlock_c::StateID_Wait);
+	
+		return true;
 	}
-}
-
-
+	
+	
+	int daEnMsgBlock_c::onDelete() {
+		TileRenderer::List *list = dBgGm_c::instance->getTileRendererList(0);
+		list->remove(&tile);
+	
+		physics.removeFromList();
+	
+		return true;
+	}
+	
+	
+	int daEnMsgBlock_c::onExecute() {
+		acState.execute();
+		physics.update();
+		blockUpdate();
+	
+		tile.setPosition(pos.x-8, -(16+pos.y), pos.z);
+		tile.setVars(scale.x);
+	
+		// now check zone bounds based on state
+		if (acState.getCurrentState()->isEqual(&StateID_Wait)) {
+			checkZoneBoundaries(0);
+		}
+	
+		return true;
+	}
+	
+	
+	daEnMsgBlock_c *daEnMsgBlock_c::build() {
+		void *buffer = AllocFromGameHeap1(sizeof(daEnMsgBlock_c));
+		return new(buffer) daEnMsgBlock_c;
+	}
+	
+	
+	void daEnMsgBlock_c::blockWasHit(bool isDown) {
+		pos.y = initialY;
+	
+		if (dMsgBoxManager_c::instance)
+			dMsgBoxManager_c::instance->showMessage(settings);
+		else
+			Delete(false);
+	
+		physics.setup(this, &physicsInfo, 3, currentLayerID);
+		physics.addToList();
+		
+		doStateChange(&StateID_Wait);
+	}
+	
+	
+	
+	void daEnMsgBlock_c::calledWhenUpMoveExecutes() {
+		if (initialY >= pos.y)
+			blockWasHit(false);
+	}
+	
+	void daEnMsgBlock_c::calledWhenDownMoveExecutes() {
+		if (initialY <= pos.y)
+			blockWasHit(true);
+	}
+	
+	
+	
+	void daEnMsgBlock_c::beginState_Wait() {
+	}
+	
+	void daEnMsgBlock_c::endState_Wait() {
+	}
+	
+	void daEnMsgBlock_c::executeState_Wait() {
+		int result = blockResult();
+	
+		if (result == 0)
+			return;
+	
+		if (result == 1) {
+			doStateChange(&daEnBlockMain_c::StateID_UpMove);
+			anotherFlag = 2;
+			isGroundPound = false;
+		} else {
+			doStateChange(&daEnBlockMain_c::StateID_DownMove);
+			anotherFlag = 1;
+			isGroundPound = true;
+		}
+	}

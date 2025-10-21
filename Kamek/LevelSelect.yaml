@@ -1,6 +1,6 @@
 ---
 source_files:
-  - ../src/LevelSelection/levelSelect.cpp
+  - ../src/levelSelect.cpp
   
 hooks:
   - name: OhGodIHopeThisWOrks

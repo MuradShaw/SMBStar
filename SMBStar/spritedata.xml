@@ -2808,5 +2808,9 @@
 
   <sprite id="506" name="Face Block" notes="A block with a face that launches players into the air when jumped on. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
   </sprite>
+
+  <sprite id="507" name="Painting" notes="Painting that allows the player to enter a level when infront of it. From Super Mario 64. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+  </sprite>
+
 </sprites>
 <!-- Thank you so much for a-playing my game! -->

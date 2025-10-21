@@ -28,6 +28,8 @@ class dEnEventCoin_c : public daBoss {
 	u8 targetEventID;
 	u8 event;
 	u64 eventFlag;
+
+	int animCheck;
 	
 	void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
@@ -133,12 +135,12 @@ void dEnEventCoin_c::updateModelMatrices() {
 	bodyModel.calcWorld(false);
 }
 
-/*void dEnEventCoin_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate) {
+void dEnEventCoin_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate) {
 	nw4r::g3d::ResAnmChr anmChr = this->resFile.GetResAnmChr(name);
-	this->animationChr.bind(&this->mdl, anmChr, unk);
-	this->mdl.bindAnim(&this->animationChr, unk2);
-	this->animationChr.setUpdateRate(rate);
-}*/
+	this->chrAnimation.bind(&this->bodyModel, anmChr, unk);
+	this->bodyModel.bindAnim(&this->chrAnimation, unk2);
+	this->chrAnimation.setUpdateRate(rate);
+}
 
 int dEnEventCoin_c::onCreate()
 {
@@ -150,11 +152,11 @@ int dEnEventCoin_c::onCreate()
 
 	SetupTextures_MapObj(&bodyModel, 0);
 
-	/*this->anmFile.data = getResource("power_star", "g3d/power_star.brres");
-	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr("idle");
-	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);*/
-	
-	allocator.unlink();
+	this->anmFile.data = getResource("obj_coin_switch", "g3d/obj_coin_switch.brres");
+	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr("coin_get");
+	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);
+
+	allocator.unlink(); 
 	
 	ActivePhysics::Info HitMeBaby;
 	HitMeBaby.xDistToCenter = 0.0;
@@ -191,6 +193,8 @@ int dEnEventCoin_c::onCreate()
 	OSReport("eventFlag: %llu\n", this->eventFlag);
 	OSReport("eventNum: %d\n", eventNum);
 	
+	animCheck = 0;
+
 	doStateChange(&StateID_Wait);
 	
 	this->onExecute();
@@ -204,12 +208,12 @@ int dEnEventCoin_c::onDraw() {
 
 int dEnEventCoin_c::onExecute() {
 	// triggerid check
-	if (this->eventFlag == 0 || (dFlagMgr_c::instance->flags & this->eventFlag)) {
+	//if (this->eventFlag == 0 || (dFlagMgr_c::instance->flags & this->eventFlag) || animCheck == 0) {
 		acState.execute();
 		updateModelMatrices();
 		bodyModel._vf1C();
-	}
-	
+	//}
+
 	return true;
 }
 
@@ -226,15 +230,23 @@ void dEnEventCoin_c::endState_Wait() {}
 
 void dEnEventCoin_c::beginState_Collected() 
 {
-	this->stopRendering = true;
-	
     this->removeMyActivePhysics();
 	this->timer = 0;
+	this->rot.y = 0;
 	
+	bindAnimChr_and_setUpdateRate("coin_get", 1, 0.0, 1.0);
+	SpawnEffect("Wm_ob_starcoinget", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	PlaySound(this, SE_OBJ_GET_DRAGON_COIN);
+
 	event = targetEventID;
 }
 void dEnEventCoin_c::executeState_Collected() 
 {
+	if(!this->chrAnimation.isAnimationDone())
+		return;
+
+	this->stopRendering = true;
+
 	// If our event is already active we'll kill it later
 	bool alreadyActivated = dFlagMgr_c::instance->active(event);
 	
@@ -243,7 +255,8 @@ void dEnEventCoin_c::executeState_Collected()
 	this->collected = true;
 	
 	if(!timedEvent)
-		this->Delete(deleteForever);
+		//if(this->chrAnimation.isAnimationDone())
+			this->Delete(deleteForever);
 	else
 	{
 		if(this->timer > timeToEnd)

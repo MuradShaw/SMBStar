@@ -25,6 +25,8 @@ class dThwomp3DW_c : public dEn_c {
 		u8 moveDirection;
 		int fallDirection;
 
+		bool keepGoingUp;
+
 		mHeapAllocator_c allocator;
 		nw4r::g3d::ResFile resFile;
 		nw4r::g3d::ResFile anmFile;
@@ -148,6 +150,8 @@ static bool thwompHugePhysCB6(dThwomp3DW_c *one, dStageActor_c *two, bool unkMay
 
 int dThwomp3DW_c::onCreate() 
 {
+	keepGoingUp = ((settings & 0xF0000) >> 16);
+
 	allocator.link(-1, GameHeaps[0], 0, 0x20);
 
 	this->resFile.data = getResource("dossun_neo", "g3d/dossun_neo.brres");
@@ -171,7 +175,7 @@ int dThwomp3DW_c::onCreate()
 
 	// Solid collision
 	physicsInfo.x1 = -48;
-	physicsInfo.y1 = 106;
+	physicsInfo.y1 = 110;
 	physicsInfo.x2 = 48;
 	physicsInfo.y2 = 0;
 
@@ -322,8 +326,8 @@ void dThwomp3DW_c::beginState_Move()
 {
 	this->timer = 0;
 	
-	this->speed.y = -9.0f;
-	this->max_speed.y = -13.0f;
+	this->speed.y = -5.0f;
+	this->max_speed.y = -6.0f;
 	this->y_speed_inc = -0.25;
 	
 	this->speed.x = 0.0f;
@@ -371,8 +375,8 @@ void dThwomp3DW_c::beginState_MoveHorizontal()
 	this->timer = 0;
 	this->speed.y = 0.0f;
 	
-	if(this->fallDirection == 1) this->speed.x = 9.0f; else this->speed.x = -9.0f;
-	if(this->fallDirection == 1) this->max_speed.x = 13.0; else this->max_speed.x = -13.0;
+	if(this->fallDirection == 1) this->speed.x = 5.0f; else this->speed.x = -5.0f;
+	if(this->fallDirection == 1) this->max_speed.x = 6.0; else this->max_speed.x = -6.0;
 	if(this->fallDirection == 1) this->direction = 0; else this->direction = 1;
 	
 	this->x_speed_inc = 0.25;
@@ -430,7 +434,9 @@ void dThwomp3DW_c::beginState_Rise()
 }
 void dThwomp3DW_c::executeState_Rise() 
 {
-	if(this->pos.y >= this->originalPosY)
+	if(
+		(this->pos.y >= (this->originalPosY + ((keepGoingUp) ? 600 : 0)))
+	)
 	{
 		this->speed.y = 0.0f;
 		this->speed.x = 0.0f;

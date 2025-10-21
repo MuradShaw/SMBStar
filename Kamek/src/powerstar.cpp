@@ -22,6 +22,8 @@ class daPowerStar_c : public daBoss {
 	m3d::mdl_c starCage;
 	m3d::anmChr_c chrAnimation;
 	
+	mEf::es2 glow;
+
 	bool collected;
 	bool stopRendering;
 	bool spawnedIn;
@@ -30,6 +32,8 @@ class daPowerStar_c : public daBoss {
 	u64 triggerEventOverride;
 	bool spawnedFromCage;
 	
+	ActivePhysics *playerToFollow;
+
 	void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
 	
@@ -78,6 +82,14 @@ void daPowerStar_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 		//apOther->owner->speed.y = 0;
 		//apOther->owner->speed.x = 0;
 		
+		bindAnimChr_and_setUpdateRate("star_get", 1, 0.0, 1.1);
+		
+		playerToFollow = apOther;
+		SpawnEffect("Wm_ob_keyget01", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.25, 1.25, 1.25});
+		PlaySound(this, SE_OBJ_GET_DRAGON_COIN);
+
+		this->rot.y = 0;
+
 		doStateChange(&StateID_Collected);
 	}
 }
@@ -154,12 +166,13 @@ void daPowerStar_c::updateModelMatrices() {
 	}
 }
 
-/*void daPowerStar_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate) {
-	nw4r::g3d::ResAnmChr anmChr = this->resFile.GetResAnmChr(name);
-	this->animationChr.bind(&this->mdl, anmChr, unk);
-	this->mdl.bindAnim(&this->animationChr, unk2);
-	this->animationChr.setUpdateRate(rate);
-}*/
+void daPowerStar_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate) {
+	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr(name);
+	this->chrAnimation.bind(&this->bodyModel, anmChr, unk);
+	this->bodyModel.bindAnim(&this->chrAnimation, unk2);
+	this->chrAnimation.setUpdateRate(rate);
+}
+
 
 int daPowerStar_c::onCreate()
 {
@@ -185,15 +198,15 @@ int daPowerStar_c::onCreate()
 	SetupTextures_MapObj(&blueStar, 0);
 	SetupTextures_MapObj(&starCage, 0);
 
-	/*this->anmFile.data = getResource("power_star", "g3d/power_star.brres");
-	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr("idle");
-	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);*/
+	this->anmFile.data = getResource("power_star", "g3d/power_star.brres");
+	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr("star_get");
+	this->chrAnimation.setup(mdl, anmChr, &this->allocator, 0);
 	
 	allocator.unlink();
 	
 	ActivePhysics::Info HitMeBaby;
 	HitMeBaby.xDistToCenter = 0.0;
-	HitMeBaby.yDistToCenter = 2.0;
+	HitMeBaby.yDistToCenter = 0.0;
 	
 	HitMeBaby.xDistToEdge = 12.0;
 	HitMeBaby.yDistToEdge = 12.0;
@@ -201,6 +214,7 @@ int daPowerStar_c::onCreate()
 	HitMeBaby.category2 = 0x0;
 	HitMeBaby.bitfield1 = 0x4F;
 	HitMeBaby.bitfield2 = 0xFFFFFFFF;
+
 	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
@@ -236,6 +250,9 @@ int daPowerStar_c::onExecute() {
 	updateModelMatrices();
 	bodyModel._vf1C();
 	
+	if(!this->collected && !this->spawnedFromCage)
+		glow.spawn("Wm_ob_keywait", 0, &this->pos, 0, &(Vec){1.25, 1.25, 1.25});
+	
 	// Let's spawn!
 	if(this->spawnedFromCage)
 	{
@@ -255,10 +272,19 @@ int daPowerStar_c::onDelete() {
 	return true;
 }
 
-void daPowerStar_c::beginState_Wait() {}
+void daPowerStar_c::beginState_Wait() {
+	this->timer = 0;
+}
 void daPowerStar_c::executeState_Wait() 
 {
 	this->rot.y += 0x200;
+
+	if(this->timer == 300)
+	{
+		this->timer = 0;
+	}
+
+	this->timer++;
 }
 void daPowerStar_c::endState_Wait() {}
 
@@ -269,8 +295,6 @@ void daPowerStar_c::beginState_Collected()
     WLClass::instance->_4 = 5;
 	WLClass::instance->_8 = 0;
 	dStage32C_c::instance->freezeMarioBossFlag = 1;
-	
-	this->stopRendering = true;
 	
     this->removeMyActivePhysics();
 	this->timer = 0;
@@ -284,7 +308,7 @@ void daPowerStar_c::executeState_Collected()
 			if(!(GetPlayerOrYoshi(i)->collMgr.isOnTopOfTile()))
 				isOnGround = false;
 	}
-		
+
 	if(!this->collected && isOnGround)
 	{
 		nw4r::snd::SoundHandle victorySoundHandle;
@@ -300,7 +324,23 @@ void daPowerStar_c::executeState_Collected()
 	}
 	
 	if(isOnGround && timer < 10)
+	{
+		if(this->timer == 1)
+		{
+			stopRendering = false;
+
+			/*this->pos.x = playerToFollow->owner->pos.x;
+			this->pos.y = playerToFollow->owner->pos.y + 50.0f;
+			this->pos.z = playerToFollow->owner->pos.z;*/
+		}
+
 		BossGoalForAllPlayers();
+	}
+
+	/*if(isOnGround)
+	{
+		SpawnEffect("Wm_ob_coinkira", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	}*/
 	
 	if(this->timer >= 180 && collected)
 		ExitStage(WORLD_MAP, 0, BEAT_LEVEL, MARIO_WIPE);
