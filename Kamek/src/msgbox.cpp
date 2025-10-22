@@ -134,8 +134,10 @@ void dMsgBoxManager_c::showMessage(int id, bool canCancel, int delay) {
 		//return;
 	}
 
+	//PLEASE DONT LOOK
+
 	layout.findTextBoxByName("T_title")->SetString(L"");
-	layout.findTextBoxByName("T_msg")->SetString(messages[id][messageIndex]);
+	layout.findTextBoxByName("T_msg")->SetString(messages[messageIndex]);
 
 	this->canCancel = canCancel;
 	this->delay = delay;
@@ -178,11 +180,8 @@ void dMsgBoxManager_c::executeState_ShownWait() {
 		if (nowPressed & WPAD_TWO)
 		{
 			messageIndex++;
-			
-			OSReport("GID %p", gid);
-			OSReport("Size %p", (sizeof(messages[gid]) / sizeof(messages[gid][0])));
 
-			if (messages[gid][messageIndex] != NULL)
+			if (messages[messageIndex] != NULL)
 				showMessage(settings);
 			else
 				state.setState(&StateID_BoxDisappearWait);
@@ -247,7 +246,15 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 		void calledWhenDownMoveExecutes();
 	
 		void blockWasHit(bool isDown);
-	
+
+		// Tile animation states
+		enum TileState {
+			TILE_SLEEP = 0,
+			TILE_WAKE = 1
+		};
+		TileState currentTileState;
+		void updateTileState(TileState newState);
+
 		USING_STATES(daEnMsgBlock_c);
 		DECLARE_STATE(Wait);
 	
@@ -257,7 +264,12 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 	
 	CREATE_STATE(daEnMsgBlock_c, Wait);
 	
-	
+	// Red tile variants (same as noteblock red set)
+	static const u16 MsgBlockTiles[2] = {
+		0xf9, // Sleep / Idle
+		0xfa  // Wake / Hit
+	};
+
 	int daEnMsgBlock_c::onCreate() {
 		blockInit(pos.y);
 	
@@ -282,8 +294,10 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 	
 		tile.x = pos.x - 8;
 		tile.y = -(16 + pos.y);
-		tile.tileNumber = 0x98;
-	
+
+		tile.tileNumber = MsgBlockTiles[TILE_SLEEP]; // Start as idle red face
+    	currentTileState = TILE_SLEEP;
+
 		doStateChange(&daEnMsgBlock_c::StateID_Wait);
 	
 		return true;
@@ -305,17 +319,28 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 		physics.update();
 		blockUpdate();
 	
-		tile.setPosition(pos.x-8, -(16+pos.y), pos.z);
+		tile.setPosition(pos.x - 8, -(16 + pos.y), pos.z);
 		tile.setVars(scale.x);
 	
-		// now check zone bounds based on state
-		if (acState.getCurrentState()->isEqual(&StateID_Wait)) {
+		// Only revert to sleep if the global message box manager is idle
+		if (dMsgBoxManager_c::instance &&
+			dMsgBoxManager_c::instance->state.getCurrentState()->isEqual(&dMsgBoxManager_c::StateID_Wait)) {
+			updateTileState(TILE_SLEEP);
 			checkZoneBoundaries(0);
 		}
+		else
+			updateTileState(TILE_WAKE);
 	
 		return true;
 	}
 	
+	
+	void daEnMsgBlock_c::updateTileState(TileState newState) {
+		if (currentTileState != newState) {
+			currentTileState = newState;
+			tile.tileNumber = MsgBlockTiles[newState];
+		}
+	}
 	
 	daEnMsgBlock_c *daEnMsgBlock_c::build() {
 		void *buffer = AllocFromGameHeap1(sizeof(daEnMsgBlock_c));
@@ -325,7 +350,7 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 	
 	void daEnMsgBlock_c::blockWasHit(bool isDown) {
 		pos.y = initialY;
-	
+
 		if (dMsgBoxManager_c::instance)
 			dMsgBoxManager_c::instance->showMessage(settings);
 		else

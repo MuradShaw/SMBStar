@@ -27,6 +27,22 @@ class daClapatrap_c : public dEn_c {
 	void updateModelMatrices();
 	
 	void playerCollision(ActivePhysics *apThis, ActivePhysics *apOther);
+	void yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther);
+
+	bool collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCatD_Drill(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat7_GroundPoundYoshi(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther);
+	// bool collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhysics *apOther);
+
 	bool meetSensorCriteria();
     void updateHitbox();
 
@@ -59,6 +75,59 @@ void daClapatrap_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOthe
 {
 	this->dEn_c::playerCollision(apThis, apOther);
 	this->_vf220(apOther->owner);
+}
+void daClapatrap_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther) {
+	this->playerCollision(apThis, apOther);
+}
+bool daClapatrap_c::collisionCatD_Drill(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return false;
+}
+bool daClapatrap_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCat7_GroundPoundYoshi(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daClapatrap_c::collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+
+bool daClapatrap_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+
+bool daClapatrap_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+
+bool daClapatrap_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	SpawnEffect("Wm_en_explosion", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	SpawnEffect("Wm_en_explosion_smk", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){3.0, 3.0, 3.0});
+
+	PlaySound(this, SE_OBJ_EMY_FIRE_DISAPP);
+	
+	return false;
+}
+bool daClapatrap_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther) { 
+	SpawnEffect("Wm_ob_cmnicekira", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.5, 1.5, 1.5});
+	SpawnEffect("Wm_ob_icebreakwt", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	SpawnEffect("Wm_ob_iceattack", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.5, 1.5, 1.5});
+
+	PlaySound(this, SE_OBJ_PNGN_ICE_BREAK);
+
+	return true; 
 }
 
 float daClapatrap_c::nearestPlayerDistance() {

@@ -110,3 +110,4 @@ modules:
   - processed/noteblock.yaml
   - processed/painting.yaml
   - processed/clapatrap.yaml
+  - processed/starDoor.yaml

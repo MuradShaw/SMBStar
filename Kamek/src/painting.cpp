@@ -41,6 +41,21 @@ class daEnPainting_c : public dEn_c {
 	bool doIt;
 
     void playerCollision(ActivePhysics *apThis, ActivePhysics *apOther);
+	void yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther);
+
+	bool collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCatD_Drill(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat7_GroundPoundYoshi(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther);
+	// bool collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther);
+	bool collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhysics *apOther);
 
 	bool checkPlayerInFrontAndStatus();
 	
@@ -70,10 +85,65 @@ dActor_c* daEnPainting_c::build() {
 	return new(buf) daEnPainting_c;
 }
 
-/*void daEnPainting_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
+void daEnPainting_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
+	return;
+}
+void daEnPainting_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther) {
+	this->playerCollision(apThis, apOther);
+}
 
-}*/
+bool daEnPainting_c::collisionCatD_Drill(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return false;
+}
+bool daEnPainting_c::collisionCat7_GroundPound(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCat7_GroundPoundYoshi(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCat9_RollingObject(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCatA_PenguinMario(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCat5_Mario(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCat11_PipeCannon(ActivePhysics *apThis, ActivePhysics *apOther){
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+bool daEnPainting_c::collisionCat13_Hammer(ActivePhysics *apThis, ActivePhysics *apOther) {
+	return this->collisionCatD_Drill(apThis, apOther);
+}
+
+bool daEnPainting_c::collisionCat3_StarPower(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+
+bool daEnPainting_c::collisionCat14_YoshiFire(ActivePhysics *apThis, ActivePhysics *apOther){
+	return false;
+}
+
+bool daEnPainting_c::collisionCat1_Fireball_E_Explosion(ActivePhysics *apThis, ActivePhysics *apOther) {
+	/*SpawnEffect("Wm_en_explosion", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	SpawnEffect("Wm_en_explosion_smk", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){3.0, 3.0, 3.0});
+
+	PlaySound(this, SE_OBJ_EMY_FIRE_DISAPP);*/
+	
+	return true;
+}
+
+bool daEnPainting_c::collisionCat2_IceBall_15_YoshiIce(ActivePhysics *apThis, ActivePhysics *apOther) { 
+	/*SpawnEffect("Wm_ob_cmnicekira", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.5, 1.5, 1.5});
+	SpawnEffect("Wm_ob_icebreakwt", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+	SpawnEffect("Wm_ob_iceattack", 0, &this->pos, &(S16Vec){0,0,0}, &(Vec){1.5, 1.5, 1.5});
+
+	PlaySound(this, SE_OBJ_PNGN_ICE_BREAK);*/
+
+	return true; 
+}
 
 int daEnPainting_c::onCreate() {
 	int paintingID = this->settings >> 0 & 0b11111111;
@@ -118,10 +188,10 @@ int daEnPainting_c::onCreate() {
 	HitMeBaby.xDistToEdge = 35.0;
 	HitMeBaby.yDistToEdge = 60.0;
 	
-	HitMeBaby.category1 = 0x3;
+	HitMeBaby.category1 = 0x5;
 	HitMeBaby.category2 = 0x0;
 	HitMeBaby.bitfield1 = 0x4F;
-	HitMeBaby.bitfield2 = 0xFFBAFFFE;
+	HitMeBaby.bitfield2 = 0x200;
 	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
