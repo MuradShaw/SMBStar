@@ -531,6 +531,7 @@ enum
 	painting = 507,
 	CameraScrollLimiter = 508,
 	clapatrap = 509,
+	StarDoor = 510,
 	
 	Num
 };
@@ -1328,6 +1329,7 @@ enum
 	painting, //774
 	CameraScrollLimiter, //775
 	clapatrap, //776
+	StarDoor, //777
 
 	Num
 };

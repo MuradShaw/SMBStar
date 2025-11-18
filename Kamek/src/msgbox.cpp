@@ -295,7 +295,7 @@ class daEnMsgBlock_c : public daEnBlockMain_c {
 		tile.x = pos.x - 8;
 		tile.y = -(16 + pos.y);
 
-		tile.tileNumber = MsgBlockTiles[TILE_SLEEP]; // Start as idle red face
+		tile.tileNumber = MsgBlockTiles[TILE_SLEEP]; // Start as idle face
     	currentTileState = TILE_SLEEP;
 
 		doStateChange(&daEnMsgBlock_c::StateID_Wait);

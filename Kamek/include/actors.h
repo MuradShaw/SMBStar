@@ -779,7 +779,8 @@ enum Actors {
 	noteblock = 773,
 	painting = 774,
 	CameraScrollLimiter = 775,
-	clapatrap = 776
+	clapatrap = 776,
+	StarDoor = 777
 };
 
 struct Actor {
