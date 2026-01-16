@@ -111,3 +111,4 @@ modules:
   - processed/painting.yaml
   - processed/clapatrap.yaml
   - processed/starDoor.yaml
+  - processed/itemBox.yaml

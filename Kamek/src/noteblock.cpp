@@ -53,7 +53,8 @@ public:
     enum Color {
         COLOR_YELLOW = 0,
         COLOR_RED = 1,
-        COLOR_PURPLE = 2
+        COLOR_PURPLE = 2,
+        COLOR_GREEN = 3
     };
     Color selectedColor;
 
@@ -85,7 +86,7 @@ Profile NoteBlockProfile(&daEnNoteBlock_c::build, SpriteId::noteblock, &NoteBloc
 
 // Tile numbers for different states and colors
 // Each color has 3 tiles: [SLEEP, BOUNCE, WAKE]
-static const u16 TileNumbers[3][3] = {
+static const u16 TileNumbers[4][3] = {
     // Yellow (COLOR_YELLOW)
     {0xf6, 0xf7, 0xf8},
     
@@ -93,7 +94,10 @@ static const u16 TileNumbers[3][3] = {
     {0xe6, 0xe7, 0xe8},
     
     // Purple (COLOR_PURPLE)
-    {0xe9, 0xea, 0xeb}
+    {0xe9, 0xea, 0xeb},
+
+    // Green (COLOR_GREEN)
+    {0xec, 0xed, 0xee}
 };
 
 
@@ -105,10 +109,14 @@ int daEnNoteBlock_c::updatePlayersOnBlock() {
         if (dAcPy_c *player = dAcPy_c::findByID(i)) {
             if(player->pos.x >= pos.x - 10 && player->pos.x <= pos.x + 10) {
                 if(player->pos.y >= pos.y - 5 && player->pos.y <= pos.y + 12) {
-                    this->playersGoUp[i] = true;
-                    anyPlayersGoUp = true;
+                    // make sure we're not already jumping prior
+                    if(strcmp(player->states2.getCurrentState()->getName(), "daPlBase_c::StateID_Jump") != 0)
+                    {
+                        this->playersGoUp[i] = true;
+                        anyPlayersGoUp = true;
 
-                    wasSteppedOn = false;
+                        wasSteppedOn = false;
+                    }
                 }
             }
             else 
@@ -156,10 +164,11 @@ int daEnNoteBlock_c::onCreate() {
     list->add(&tile);
 
     // Randomly select a color variant
-    selectedColor = (Color)GenerateRandomNumber(3); // 0-2 for yellow, red, purple
+    int ourColor = (settings & 0xF00) >> 8;
+    selectedColor = (Color)ourColor;
 
     tile.x = pos.x - 8;
-    tile.y = -(16 + pos.y);
+    tile.y = -(8+pos.y);
     tile.tileNumber = TileNumbers[selectedColor][TILE_SLEEP]; // Start with sleep state
 
     originalY = pos.y;
@@ -203,7 +212,7 @@ int daEnNoteBlock_c::onExecute() {
     if(this->pos.y == originalY) {
         updateTileState(TILE_SLEEP);
     }
-        
+    
     if(updatePlayersOnBlock()) 
     {
         this->pos.y = originalY - 0.75f;
@@ -220,9 +229,9 @@ int daEnNoteBlock_c::onExecute() {
     // Handle bounce timer
     if(currentTileState == TILE_BOUNCE) {
         bounceTimer++;
-        if(bounceTimer > 10) { // Bounce state lasts for 10 frames
+        if(bounceTimer > 120) { // Bounce state lasts for 10 frames
             bounceTimer = 0;
-            updateTileState(TILE_WAKE);
+            updateTileState(TILE_SLEEP);
         }
     }
 

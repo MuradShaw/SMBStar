@@ -527,12 +527,14 @@ enum
 	SpinDrift = 502,
 	SpinPlatform = 503,
 	bigblock = 504,
+	CameraScrollLimiter = 505,
 	noteblock = 506,
 	painting = 507,
-	CameraScrollLimiter = 508,
+	//CameraScrollLimiter = 508,
 	clapatrap = 509,
 	StarDoor = 510,
-	
+	itembox = 511,
+
 	Num
 };
 
@@ -1325,11 +1327,13 @@ enum
 	SpinDrift, //769
 	SpinPlatform, //770
 	bigblock, //771
+	CameraScrollLimiter,
 	noteblock, //773
 	painting, //774
-	CameraScrollLimiter, //775
+	//CameraScrollLimiter, //775
 	clapatrap, //776
 	StarDoor, //777
+	itembox, //778
 
 	Num
 };

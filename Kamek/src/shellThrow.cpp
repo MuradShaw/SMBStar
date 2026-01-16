@@ -122,6 +122,8 @@ void sub_8003A240(void *, void *); // no idea what this does
 void ThrowShellInTheAir(daEnShell_c *shell, daPlBase_c *player) {
     sub_8003A240(&shell, &player);
 
+    player->setAnimePlayStandardType(PlayerAnim::carry_throw); // or whatever animation you want
+    
     if (player->input.getHeldUp()) {
         shell->doStateChange(&daEnShell_c::StateID_ThrowSMW);
     } else {

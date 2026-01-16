@@ -50,7 +50,7 @@ int daCoinEruption_c::onCreate()
 	switch(this->amountOfCoins)
 	{
 		case 0:
-			this->amountOfCoins = 20;
+			this->amountOfCoins = 10;
 			break;
 		case 1:
 			this->amountOfCoins = 50;
@@ -70,7 +70,7 @@ int daCoinEruption_c::onCreate()
 	switch(this->spread)
 	{
 		case 0:
-			this->spread = 2;
+			this->spread = 4;
 			break;
 		case 1:
 			this->spread = 11;
@@ -126,7 +126,7 @@ void daCoinEruption_c::executeState_Wait()
 	if(!this->spawned) return;
 	if(this->timerSecond > this->amountOfCoins) return;
 	
-	if(this->timer >= 7)
+	if(this->timer >= 12)
 		doStateChange(&StateID_Spawn);
 	
 	this->timer++;

@@ -261,7 +261,7 @@ void dGoombrat_c::updateModelMatrices() {
 	bodyModel.setScale(&scale);
 	bodyModel.calcWorld(false);
 }
-
+ 
 void dGoombrat_c::bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate) {
 	nw4r::g3d::ResAnmChr anmChr = this->anmFile.GetResAnmChr(name);
 	this->chrAnimation.bind(&this->bodyModel, anmChr, unk);
