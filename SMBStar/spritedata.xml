@@ -2773,6 +2773,7 @@
 	  <entry value="1">Right</entry>
 	  <entry value="2">Left</entry>
 	</list>
+  <checkbox nybble="8" title="Go up more" comment="If checked, the thwomp will continue to move up after falling down."/>
   </sprite>
   
   <sprite id="501" name="Coin Eruption" notes="This sprite was made moments before the downfall of ... &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
@@ -2806,11 +2807,63 @@
 	<checkbox nybble="9.3" title="Starts Right" comment="If checked, the spindrift will start facing right."/>
   </sprite>
 
+  <sprite id="505" name="Camera Scroll Limiter" notes="Smooth camera scroll limiter that unlocks the camera if the player gets too close to it while permeable.">
+	<list title="Behaviour" nybble="5.3-5.4" comment="On which side the camera should stay on.">
+		<entry value="0">Camera Stays on Top</entry>
+		<entry value="1">Camera Stay on Bottom</entry>
+		<entry value="2">Camera Stay on Left</entry>
+		<entry value="3">Camera Stay on Right</entry>
+	</list>
+	<dualbox title1="Permeable" title2="Block Camera" nybble="5.2" comment="Permeable means that it won't block the camera if at least one player gets close and / or go through the limit."/>
+	<value title="Distance" nybble="6-8" comment="Value is in tiles.&lt;br/&gt;Distance = Value + 1"/>
+	<value title="Speed" nybble="9-10" comment="Value x 0.05&lt;br/&gt;0 = 4.0 (default speed)&lt;br/&gt;1 = 0.05&lt;br/&gt;5 = 0.25&lt;br/&gt;10 = 0.5&lt;br/&gt;20 = 1.0&lt;br/&gt;40 = 2.0&lt;br/&gt;Etc."/>
+</sprite>
+
   <sprite id="506" name="Face Block" notes="A block with a face that launches players into the air when jumped on. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+    <list nybble="10" title="Colour" comment="The color of the block but it's uk">
+      <entry value="0">Yellow</entry>
+      <entry value="1">Red</entry>
+      <entry value="2">Purple</entry>
+      <entry value="3">Green</entry>
+	  </list>
   </sprite>
 
   <sprite id="507" name="Painting" notes="Painting that allows the player to enter a level when infront of it. From Super Mario 64. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+    <value nybble="11-12" title="Painting ID" />
+    <value nybble="5" title="World Num"/>
+    <value nybble="9-10" title="Level Num"/>
+  </sprite>
+<sprite id="508" name="Camera Scroll Limiter" notes="Smooth camera scroll limiter that unlocks the camera if the player gets too close to it while permeable.">
+	<list title="Behaviour" nybble="5.3-5.4" comment="On which side the camera should stay on.">
+		<entry value="0">Camera Stays on Top</entry>
+		<entry value="1">Camera Stay on Bottom</entry>
+		<entry value="2">Camera Stay on Left</entry>
+		<entry value="3">Camera Stay on Right</entry>
+	</list>
+	<dualbox title1="Permeable" title2="Block Camera" nybble="5.2" comment="Permeable means that it won't block the camera if at least one player gets close and / or go through the limit."/>
+	<value title="Distance" nybble="6-8" comment="Value is in tiles.&lt;br/&gt;Distance = Value + 1"/>
+	<value title="Speed" nybble="9-10" comment="Value x 0.05&lt;br/&gt;0 = 4.0 (default speed)&lt;br/&gt;1 = 0.05&lt;br/&gt;5 = 0.25&lt;br/&gt;10 = 0.5&lt;br/&gt;20 = 1.0&lt;br/&gt;40 = 2.0&lt;br/&gt;Etc."/>
+</sprite>
+
+  <sprite id="509" name="Clapatrap" notes="KOOPA JR SERIES: Mario Mouse Trap!!! &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+    <list nybble="5" title="Orientation">
+      <entry value="0">Down</entry>
+		  <entry value="1">Right</entry>
+		  <entry value="2">Up</entry>
+      <entry value="3">Left</entry>
+    </list>
   </sprite>
 
+<sprite id="510" name="Star Door" notes="Door whose key is the players progression. From SM64. \n&lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+  <value nybble="11-12" title="Star Lock" comment="The amount of stars needed to open."/>
+</sprite>
+
+<sprite id="511" name="Item Box" notes="Item box that gives an item when collected. From Mario Kart Wii. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+</sprite>
+
+<sprite id="512" name="Bird" notes="Perching bird that flies away when the player gets close. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+  <checkbox nybble="9.3" title="Flies Left" comment="If checked, the bird will face right and fly left."/>
+</sprite>
+
 </sprites>
-<!-- Thank you so much for a-playing my game! -->
+<!-- Are we... Victorious? -->

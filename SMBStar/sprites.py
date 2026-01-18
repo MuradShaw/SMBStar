@@ -1088,7 +1088,7 @@ class SpriteImage_MessageBlock(SLib.SpriteImage_Static): # 152
         super().__init__(
             parent,
             1.5,
-            SLib.GetTile(0x98),
+            SLib.GetTile(0xf9),
             (8, 0)
         )
 
@@ -2278,6 +2278,67 @@ class SpriteImage_Sushi(SLib.SpriteImage_Static):
     def loadImages():
         SLib.loadIfNotInImageCache('Sushi', 'sushi.png')
 
+class SpriteImage_FaceBlock(SLib.SpriteImage_Static):  # 506
+    def __init__(self, parent):
+        import random
+        tile_id = [0xE9, 0xE6, 0xF6][0]
+        super().__init__(
+            parent,
+            1.5,
+            SLib.GetTile(tile_id),
+            (0, 0)
+        )
+    
+    def dataChanged(self):
+        da_type = self.parent.spritedata[5] & 0xF
+        tile_id = [0xE9, 0xE6, 0xF6, 0xEC][da_type]
+        SLib.GetTile(tile_id)
+
+        super().dataChanged()
+
+
+
+class SpriteImage_CameraScrollLimiter(SLib.SpriteImage_StaticMultiple):  # 508
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.offset = (0, 0)
+
+    @staticmethod
+    def loadImages():
+        if 'CameraScrollLimiterBlock' in ImageCache: return
+        ImageCache[f'CameraScrollLimiterBlock'] = SLib.GetImg(f'camera_scroll_limiter/block.png')
+        ImageCache[f'CameraScrollLimiterPermeable'] = SLib.GetImg(f'camera_scroll_limiter/permeable.png')
+
+    def dataChanged(self):
+        side = (self.parent.spritedata[2] >> 4) & 0x3
+        permeable = ((self.parent.spritedata[2] >> 6) & 0x1) == 0
+        distance = (((self.parent.spritedata[2] & 0xF) << 8) | (self.parent.spritedata[3] & 0xFF)) + 1
+
+        s = f'CameraScrollLimiter{"Permeable" if permeable else "Block"}'
+
+        img = QtGui.QPixmap(24 * distance, 24)
+        img.fill(QtCore.Qt.transparent)
+
+        for i in range(0, distance, 2):
+            image_painter = QtGui.QPainter(img)
+            image_painter.drawPixmap(24 * i, 0, ImageCache[s])
+            image_painter.end()
+
+        if side == 1: # Bottom
+            img = img.transformed(QtGui.QTransform().rotate(180))
+            img = img.transformed(QtGui.QTransform().scale(-1, 1))
+
+        elif side == 2: # Left
+            img = img.transformed(QtGui.QTransform().rotate(-90))
+            img = img.transformed(QtGui.QTransform().scale(1, -1))
+
+        elif side == 3: # Right
+            img = img.transformed(QtGui.QTransform().rotate(90))
+
+        self.image = img
+
+        super().dataChanged()
+
 #class SpriteImage_Ponki(SLib.SpriteImage_Static):  # 570
 #    def __init__(self, parent):
 #        super().__init__(
@@ -2394,4 +2455,7 @@ ImageClasses = {
     # 496: SpriteImage_Unagi,
     
     #485: SpriteImage_Unagi
+
+    506: SpriteImage_FaceBlock,
+    508: SpriteImage_CameraScrollLimiter,
 }
