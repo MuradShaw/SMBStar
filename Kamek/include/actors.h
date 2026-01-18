@@ -782,7 +782,8 @@ enum Actors {
 	//CameraScrollLimiter = 775,
 	clapatrap = 776,
 	StarDoor = 777,
-	itembox = 778
+	itembox = 778,
+	bird = 779
 };
 
 struct Actor {

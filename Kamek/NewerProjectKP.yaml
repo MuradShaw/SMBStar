@@ -74,7 +74,7 @@ modules:
   
   # WM
   # - processed/MONKEY_D_LUFFY.yaml
-  - processed/LevelSelect.yaml
+  # - processed/LevelSelect.yaml
   # - processed/LevelLoadingScreen.yaml
   # - processed/hubworld.yaml
 
@@ -112,3 +112,4 @@ modules:
   - processed/clapatrap.yaml
   - processed/starDoor.yaml
   - processed/itemBox.yaml
+  - processed/birdDeco.yaml

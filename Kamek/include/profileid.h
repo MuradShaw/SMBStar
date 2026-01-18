@@ -534,6 +534,7 @@ enum
 	clapatrap = 509,
 	StarDoor = 510,
 	itembox = 511,
+	bird = 512,
 
 	Num
 };
@@ -1334,6 +1335,7 @@ enum
 	clapatrap, //776
 	StarDoor, //777
 	itembox, //778
+	bird, //779
 
 	Num
 };
