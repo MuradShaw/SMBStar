@@ -230,10 +230,10 @@ void dBird_c::beginState_Fly()
     bindAnimChr_and_setUpdateRate("fly", 1, 0.0, 0.75); 
 
     this->speed.x = (this->fliesLeft) ? -2.0 : 2.0;
-    this->speed.y = 2.5f;
-    this->max_speed.y = 2.5f;
+    this->speed.y = 1.0;
+    this->max_speed.y = 1.0f;
 
-    this->y_speed_inc = 0.05;
+    //this->y_speed_inc = 0.005;
 
     this->timer = 0;
 }
@@ -242,6 +242,12 @@ void dBird_c::executeState_Fly()
     HandleXSpeed();
     HandleYSpeed();
     doSpriteMovement();
+
+	if(this->speed.y <= 2.5)
+	{
+		this->speed.y += 0.1;
+		this->max_speed.y += 0.1;
+	}
 
     if(this->chrAnimation.isAnimationDone())
         this->chrAnimation.setCurrentFrame(0.0);
