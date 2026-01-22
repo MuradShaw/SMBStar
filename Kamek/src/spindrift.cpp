@@ -228,7 +228,7 @@ int daSpinDrift_c::onCreate() {
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
 
-    this->scale = (Vec){1.0f, 1.0f, 1.0f};
+    this->scale = (Vec){1.5f, 1.5f, 1.5f};
 
     this->rot.x = 0;
     if(this->flightType == 2)

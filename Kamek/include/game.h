@@ -2422,6 +2422,7 @@ class daPlBase_c : public dStageActor_c {
 		DECLARE_STATE(SpinFly);
 		DECLARE_STATE(NoteBlockLaunch);
 		DECLARE_STATE(PaintingJump);
+		DECLARE_STATE(MegaMario);
 
 		static daPlBase_c *findByID(int id);
 };

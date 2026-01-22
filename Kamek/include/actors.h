@@ -783,7 +783,9 @@ enum Actors {
 	clapatrap = 776,
 	StarDoor = 777,
 	itembox = 778,
-	bird = 779
+	bird = 779,
+	mega = 780,
+	megamario = 781
 };
 
 struct Actor {

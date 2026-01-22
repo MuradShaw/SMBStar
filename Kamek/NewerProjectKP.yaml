@@ -113,3 +113,5 @@ modules:
   - processed/starDoor.yaml
   - processed/itemBox.yaml
   - processed/birdDeco.yaml
+  - processed/megamushroom.yaml
+  - processed/megamario.yaml

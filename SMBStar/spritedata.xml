@@ -2865,5 +2865,11 @@
   <checkbox nybble="9.3" title="Flies Left" comment="If checked, the bird will face right and fly left."/>
 </sprite>
 
+<sprite id="513" name="Mega Mushroom" notes="A mushroom that turns the player big upon impact. From NSMBDS and SMB. &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+</sprite>
+
+<sprite id="514" name="Mega Mario" notes="Literally f#32@! Mega Mario &lt;font color=&quot;orange&quot;&gt;For use with Project Star&lt;/font&gt;">
+</sprite>
+
 </sprites>
 <!-- Are we... Victorious? -->

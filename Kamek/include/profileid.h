@@ -535,6 +535,8 @@ enum
 	StarDoor = 510,
 	itembox = 511,
 	bird = 512,
+	mega = 513,
+	megamario = 514,
 
 	Num
 };
@@ -1336,6 +1338,8 @@ enum
 	StarDoor, //777
 	itembox, //778
 	bird, //779
+	mega, //780
+	megamario, //781
 
 	Num
 };
