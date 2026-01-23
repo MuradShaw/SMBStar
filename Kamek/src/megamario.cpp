@@ -306,13 +306,13 @@ int dMegaMario_c::onExecute() {
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
-
+	
 	if(this->scale.x != 1.5f) return;
 
 	Vec bindPos = this->pos;
 	bindPos.y += 50.0f;
 	daPlayer->pos = bindPos;
-
+	
 	bool onGround = collMgr.isOnTopOfTile();
 
 	if(this->speed.y >= 5.9f)
@@ -363,6 +363,8 @@ int dMegaMario_c::onExecute() {
 		}
 		this->timer++;
 	}
+	else if(this->texState == 3)
+		this->patAnimation.setFrameForEntry(5, 0);
 	else
 		this->patAnimation.setFrameForEntry(0, 0);
 
@@ -440,20 +442,28 @@ void dMegaMario_c::beginState_SpawnScale() {
 
 void dMegaMario_c::executeState_SpawnScale() {
 	timer++;
+	this->patAnimation.setFrameForEntry(0, 0);
 
-	if (timer == 5) {
+	Vec bindPos = this->pos;
+	bindPos.y += 50.0f;
+	daPlayer->pos = bindPos;
+
+	if (timer == 7) {
 		scale = (Vec){0.7f, 0.7f, 0.7f};
 	}
-	else if (timer == 10) {
+	else if (timer == 14) {
 		scale = (Vec){0.5f, 0.5f, 0.5f};
 	}
-	else if (timer == 15) {
+	else if (timer == 21) {
 		scale = (Vec){1.0f, 1.0f, 1.0f};
 	}
-	else if (timer == 20) {
+	else if (timer == 28) {
 		scale = (Vec){0.7f, 0.7f, 0.7f};
 	}
-	else if (timer == 25) {
+	else if (timer == 35) {
+		scale = (Vec){1.49f, 1.49f, 1.49f};
+	}
+	else if (timer == 42) {
 		scale = (Vec){1.5f, 1.5f, 1.5f};
 		doStateChange(&StateID_Walk); // transition to normal behavior
 	}
@@ -468,14 +478,17 @@ void dMegaMario_c::endState_SpawnScale() {
 
 #define MAX_MEGA_SPEED 1.5f
 #define SPD_INCREMENT 0.25f
+#define SPD_TURN 0.05f
 
 Vec oldPos;
 bool jump;
+bool turning;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
 	this->useDemoControl();
 	jump = false;
+	turning = false;
 }
 void daPlBase_c::executeState_MegaMario() {
 	dMegaMario_c* megaMario = (dMegaMario_c*)FindActorByType(mega, 0);
@@ -492,6 +505,12 @@ void daPlBase_c::executeState_MegaMario() {
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
 	
 	if(con->heldButtons & WPAD_LEFT) {
+		if(megaMario->speed.x >= MAX_MEGA_SPEED)
+			turning = true;
+
+		if(megaMario->speed.x <= 0)
+			turning = false;
+
 		if(megaMario->speed.x <= -MAX_MEGA_SPEED)
 		{
 			megaMario->speed.x = -MAX_MEGA_SPEED;
@@ -499,14 +518,20 @@ void daPlBase_c::executeState_MegaMario() {
 		}
 		else
 		{ 
-			megaMario->speed.x -= SPD_INCREMENT;
-			megaMario->max_speed.x -= SPD_INCREMENT;
+			megaMario->speed.x -= (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->max_speed.x -= (turning) ? SPD_TURN : SPD_INCREMENT;
 		}
 
 		megaMario->rot.y = 0x8000;
 	}
 
 	if(con->heldButtons & WPAD_RIGHT) {
+		if(megaMario->speed.x <= -MAX_MEGA_SPEED)
+			turning = true;
+
+		if(megaMario->speed.x >= 0)
+			turning = false;
+
 		if(megaMario->speed.x >= MAX_MEGA_SPEED)
 		{
 			megaMario->speed.x = MAX_MEGA_SPEED;
@@ -514,8 +539,8 @@ void daPlBase_c::executeState_MegaMario() {
 		}
 		else
 		{ 
-			megaMario->speed.x += SPD_INCREMENT;
-			megaMario->max_speed.x = SPD_INCREMENT;
+			megaMario->speed.x += (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->max_speed.x = (turning) ? SPD_TURN : SPD_INCREMENT;
 		}
 
 		megaMario->rot.y = 0;
@@ -554,6 +579,8 @@ void daPlBase_c::executeState_MegaMario() {
 	// TEXTURE ANIMS FOR MEGA MARIO SPRITE
 	if(megaMario->weJumped)
 		megaMario->texState = 0;
+	else if(turning)
+		megaMario->texState = 3;
 	else if(megaMario->speed.x != 0)
 		megaMario->texState = 1;
 	else
