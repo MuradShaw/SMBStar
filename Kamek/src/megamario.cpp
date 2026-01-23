@@ -40,6 +40,9 @@ class dMegaMario_c : public daBoss {
 	bool weAreReadyForAction;
 	float originalX;
 	int speedFrameIncrease;
+	bool wasOnGround;
+	bool canBreakThisLanding;
+	bool weJumped;
     
     bool calculateTileCollisions();
 
@@ -212,7 +215,7 @@ int dMegaMario_c::onCreate()
 	
 	// Size
 	HitMeBaby.xDistToEdge = 32.0;
-	HitMeBaby.yDistToEdge = 64.0;
+	HitMeBaby.yDistToEdge = 50.0;
 	
 	HitMeBaby.category1 = 0x3;
 	HitMeBaby.category2 = 0x0;
@@ -223,6 +226,10 @@ int dMegaMario_c::onCreate()
 	
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
+
+	wasOnGround = false;
+	weJumped = false;
+	canBreakThisLanding = false;
 
 	// STOLEN
 	
@@ -252,7 +259,7 @@ int dMegaMario_c::onCreate()
 	belowSensor.lineB =  size << 12;
 	belowSensor.distanceFromCenter = -15;
 
-	int halfHeight = 64; // match ActivePhysics yDistToEdge
+	int halfHeight = 50; // match ActivePhysics yDistToEdge
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -263,14 +270,26 @@ int dMegaMario_c::onCreate()
 
 	// Vertical line spanning full body height
 	adjacentSensor.lineA =  0 << 12;
-	adjacentSensor.lineB =  128 << 12;
+	adjacentSensor.lineB =  100 << 12;
 
 	// Horizontal offset from center (how far to the side)
 	adjacentSensor.distanceFromCenter = 32 << 12; // match xDistToEdge
 
-	// Register sensors
-	collMgr.init(this, &belowSensor, 0, &adjacentSensor);
+	// ABOVE SENSOR
+	aboveSensor.flags =
+		SENSOR_LINE |
+		SENSOR_BREAK_BLOCK |
+		SENSOR_BREAK_BRICK |
+		SENSOR_10000000;
+	
+	aboveSensor.lineA = -size << 12;
+	aboveSensor.lineB =  size << 12;
+	//aboveSensor.distanceFromCenter = 50;
 
+	// Register sensors
+	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
+
+	daPlayer = dAcPy_c::findByID(0); 
 	//cmgr_returnValue = collMgr.isOnTopOfTile();
 	
 	this->onExecute();
@@ -287,6 +306,35 @@ int dMegaMario_c::onExecute() {
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
+
+	if(this->scale.x != 1.5f) return;
+
+	Vec bindPos = this->pos;
+	bindPos.y += 50.0f;
+	daPlayer->pos = bindPos;
+
+	bool onGround = collMgr.isOnTopOfTile();
+
+	if(this->speed.y >= 5.9f)
+		this->weJumped = true;
+
+	// Detect landing from a jump
+	if (this->weJumped && onGround) {
+		canBreakThisLanding = true;
+		this->weJumped = false;
+	}
+	else
+		canBreakThisLanding = false;
+
+	wasOnGround = onGround;
+
+	// Enable brick breaking ONLY for the landing frame
+	if (canBreakThisLanding) {
+		belowSensor.flags |= SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK;
+	}
+	else {
+		belowSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK);
+	}
 
 	if(this->texState == 0)
 	{
@@ -334,7 +382,7 @@ bool dMegaMario_c::calculateTileCollisions()
 	
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	collMgr.calculateBelowCollisionWithSmokeEffect();
-	
+
 	float xDelta = pos.x - last_pos.x;
 	if (xDelta >= 0.0f)
 		direction = 0;
@@ -368,8 +416,8 @@ void dMegaMario_c::beginState_Walk()
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
-	this->max_speed.y = -4.0;
-	this->speed.y = -4.0;
+	this->max_speed.y = -3.0;
+	this->speed.y = -3.0;
 	this->y_speed_inc = -0.1875;
 	
 	this->texState = 0;
@@ -418,7 +466,7 @@ void dMegaMario_c::endState_SpawnScale() {
 ////////////////////////////////////////////////////////////////////////////////////
 // PLAYER STATES
 
-#define MAX_MEGA_SPEED 2.0f
+#define MAX_MEGA_SPEED 1.5f
 #define SPD_INCREMENT 0.25f
 
 Vec oldPos;
@@ -434,12 +482,6 @@ void daPlBase_c::executeState_MegaMario() {
 
 	if(!megaMario)
 		return;
-
-	Vec bindPos = megaMario->pos;
-	bindPos.y += 50.0f;
-	this->pos = bindPos;
-	
-	this->pos = megaMario->pos;
 
 	if(megaMario->scale.x != 1.5f)
 		return;
@@ -510,7 +552,7 @@ void daPlBase_c::executeState_MegaMario() {
 	megaMario->doSpriteMovement();
 
 	// TEXTURE ANIMS FOR MEGA MARIO SPRITE
-	if(megaMario->texState == 0 && !megaMario->collMgr.isOnTopOfTile())
+	if(megaMario->weJumped)
 		megaMario->texState = 0;
 	else if(megaMario->speed.x != 0)
 		megaMario->texState = 1;
