@@ -10,6 +10,9 @@
 #include "boss.h"
 
 const char* MegaMarioArc[] = {"obj_mega", NULL};
+
+// apDebug.cpp debug drawer (sensor hitboxes)
+extern int APDebugDraw();
 	
 class dMegaMario_c : public daBoss {
     int onCreate();
@@ -269,7 +272,7 @@ int dMegaMario_c::onCreate()
 	belowSensor.lineB =  size << 12;
 	belowSensor.distanceFromCenter = -15;
 
-	int halfHeight = 50; // match ActivePhysics yDistToEdge
+	int halfHeight = 60; // match ActivePhysics yDistToEdge
 
 	// SIDE SENSOR
 	adjacentSensor.flags =
@@ -289,12 +292,12 @@ int dMegaMario_c::onCreate()
 	aboveSensor.flags =
 		SENSOR_LINE |
 		SENSOR_BREAK_BLOCK |
-		SENSOR_BREAK_BRICK |
-		SENSOR_10000000;
+		SENSOR_ACTIVATE_QUESTION |
+		SENSOR_HIT_OR_BREAK_BRICK;
 	
-	aboveSensor.lineA = 20 << 12;
-	aboveSensor.lineB = -20 << 12;
-	aboveSensor.distanceFromCenter = 30;
+	aboveSensor.lineA = -size << 12;
+	aboveSensor.lineB =  size << 12;
+	aboveSensor.distanceFromCenter = int(ceil(halfHeight * 1.75)) << 12;
 
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
@@ -326,6 +329,7 @@ int dMegaMario_c::onExecute() {
 	}
 	
 	if(this->scale.x != 1.5f) return;
+	APDebugDraw();
 
 	if (strcmp(daPlayer->states2.getCurrentState()->getName(),
            "daPlBase_c::MegaMario") != 0) {
@@ -379,9 +383,9 @@ int dMegaMario_c::onExecute() {
 				this->walkTimer = 2;
 			}
 
-			if(this->speed.x >= 2.0f || this->speed.x <= -2.0f)
+			if(this->speed.x >= 3.0f || this->speed.x <= -3.0f)
 				speedFrameIncrease = 3;
-			else if(this->speed.x >= 1.0f || this->speed.x <= -1.0f)
+			else if(this->speed.x >= 1.5f || this->speed.x <= -1.5f)
 				speedFrameIncrease = 5;
 			else
 				speedFrameIncrease = 7;
@@ -393,7 +397,7 @@ int dMegaMario_c::onExecute() {
 	else
 		this->patAnimation.setFrameForEntry(0, 0);
 
-	this->collMgr.calculateAboveCollision(this->collMgr.outputMaybe);
+	// Above collision is handled in calculateTileCollisions after movement updates.
 
 	return true;
 }
@@ -411,6 +415,14 @@ bool dMegaMario_c::calculateTileCollisions()
 	
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	collMgr.calculateBelowCollisionWithSmokeEffect();
+	
+	if (speed.y > 0.0f)
+		aboveSensor.flags |= SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK;
+	else
+		aboveSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK);
+
+	if (collMgr.calculateAboveCollision(collMgr.outputMaybe) && speed.y > 0.0f)
+		speed.y = 0.0f;
 	
 
 	float xDelta = pos.x - last_pos.x;
@@ -505,8 +517,8 @@ void dMegaMario_c::endState_SpawnScale() {
 // PLAYER STATES
 
 #define MAX_MEGA_SPEED 3.0f
-#define SPD_INCREMENT 0.8f
-#define SPD_TURN 0.16f
+#define SPD_INCREMENT 0.5f
+#define SPD_TURN 0.1f
 
 Vec oldPos;
 bool jump;
@@ -542,7 +554,7 @@ void daPlBase_c::executeState_MegaMario() {
 	float currentCap = (megaMario->max_speed.x < 0.0f) ? -megaMario->max_speed.x : megaMario->max_speed.x;
 	if (currentCap == 0.0f)
 		currentCap = baseMax;
-float speedCap = currentCap + (targetMax - currentCap) * 0.1f;
+float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
 	
 	if(con->heldButtons & WPAD_LEFT) {
 		if(megaMario->speed.x >= MAX_MEGA_SPEED) {
