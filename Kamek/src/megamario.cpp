@@ -11,6 +11,9 @@
 
 const char* MegaMarioArc[] = {"obj_mega", NULL};
 
+#define MEGA_TOTAL_TIME   (20 * 60)
+#define MEGA_FLASH_TIME   (5 * 60)
+
 // apDebug.cpp debug drawer (sensor hitboxes)
 extern int APDebugDraw();
 	
@@ -36,6 +39,7 @@ class dMegaMario_c : public daBoss {
 	lineSensor_s aboveSensor;
 
     int timer;
+	int flashTimer;
     int Baseline;
 	public: int texState;
 	int walkTimer;
@@ -47,6 +51,11 @@ class dMegaMario_c : public daBoss {
 	bool canBreakThisLanding;
 	bool weJumped;
     int fazcheck;
+	bool markInvisible;
+	bool finishingUp;
+	int animTimer;
+
+	Vec originalPos;
 
     bool calculateTileCollisions();
 
@@ -54,6 +63,7 @@ class dMegaMario_c : public daBoss {
     void updateModelMatrices();
 	void bindAnimChr_and_setUpdateRate(const char* name, int unk, float unk2, float rate);
 	float nearestPlayerDistance();
+	void calculateRemainingTime();
 
 	void playerCollision(ActivePhysics *apThis, ActivePhysics *apOther);
 	void spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther);
@@ -76,12 +86,16 @@ class dMegaMario_c : public daBoss {
     public: void setdaPlayer(dAcPy_c *player);
 	
 	USING_STATES(dMegaMario_c);
+	DECLARE_STATE(Idle);
 	DECLARE_STATE(Walk);
 	DECLARE_STATE(SpawnScale);
+	DECLARE_STATE(MegaOutro);
 };
 
+CREATE_STATE(dMegaMario_c, Idle);
 CREATE_STATE(dMegaMario_c, Walk);
 CREATE_STATE(dMegaMario_c, SpawnScale);
+CREATE_STATE(dMegaMario_c, MegaOutro);
 
 // Add state to the player
 CREATE_STATE(daPlBase_c, MegaMario);
@@ -112,16 +126,19 @@ void dMegaMario_c::yoshiCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 }
 void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther) 
 {
-    u16 name = ((dEn_c*)apOther->owner)->name;
+    u16 name = ((dActor_c*)apOther->owner)->name;
+
+	OSReport("COLLISION with %d\n", ((dActor_c*)apOther->owner)->name);
+
+	if(name == mega) return;
 
 	if (name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE
 		|| name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND 
 		|| name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN
 		|| name == EN_JUMPDAI || name == EN_ITEM || name == EN_STAR_COIN) {
-			((dEn_c*)apOther->owner)->pos = daPlayer->pos;
-			OSReport("Collision!"); 
+			((dActor_c*)apOther->owner)->pos = daPlayer->pos;
 		}
-	
+
 	if (name == EN_NOKONOKO)
 	{
 		((dEn_c*)apOther->owner)->kill();
@@ -199,8 +216,10 @@ int dMegaMario_c::onCreate()
 	this->texState = 2;
 	this->direction = 1;
 	this->speedFrameIncrease = 7;
+	this->markInvisible = false;
+	this->animTimer = 0;
 
-	originalX = this->pos.x;
+	originalPos = this->pos;
 
     allocator.link(-1, GameHeaps[0], 0, 0x20);
 	
@@ -230,9 +249,9 @@ int dMegaMario_c::onCreate()
 	HitMeBaby.yDistToEdge = 60.0;
 	
 	HitMeBaby.category1 = 0x3;
-	HitMeBaby.category2 = 0x0;
-	HitMeBaby.bitfield1 = 0x4F;
-	HitMeBaby.bitfield2 = 0xFFBAFFFE;
+	HitMeBaby.category2 = 0x1;   // allow category2 sprites (coins, items)
+	HitMeBaby.bitfield1 = 0xFFFFFFFF;
+	HitMeBaby.bitfield2 = 0xFFFFFFFF;
 	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
@@ -257,7 +276,7 @@ int dMegaMario_c::onCreate()
 	collMgr.init(this, &below, &above, &adjacent);
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 	
-	int size = 24; // MegaMario width in tiles
+	int size = 20; // MegaMario width in tiles
 
 	this->fazcheck = 0;
 
@@ -305,6 +324,9 @@ int dMegaMario_c::onCreate()
 	daPlayer = dAcPy_c::findByID(0); 
 	//cmgr_returnValue = collMgr.isOnTopOfTile();
 	
+	this->finishingUp = false;
+	this->timer = 0;
+
 	OSReport("It's time to get BIG");
 	this->onExecute();
 	return true;
@@ -312,12 +334,11 @@ int dMegaMario_c::onCreate()
 
 int dMegaMario_c::onDraw()
 {
-    bodyModel.scheduleForDrawing();
+    if(!markInvisible) bodyModel.scheduleForDrawing();
     return true;
 }
 
 int dMegaMario_c::onExecute() {
-	OSReport("Execute");
 	acState.execute();
 	updateModelMatrices();
 	bodyModel._vf1C();
@@ -363,7 +384,7 @@ int dMegaMario_c::onExecute() {
 		belowSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK);
 	}
 
-	this->fazcheck = (this->fazcheck) ? 0 : 1;
+	// Texture anims
 
 	if(this->texState == 0)
 	{
@@ -371,14 +392,14 @@ int dMegaMario_c::onExecute() {
 	}
 	else if(this->texState == 1)
 	{
-		if(this->timer >= speedFrameIncrease)
+		if(this->animTimer >= speedFrameIncrease)
 		{
 			if(this->walkTimer < 5) {
 				this->patAnimation.setFrameForEntry(this->walkTimer, 0);
 				this->walkTimer++;
-				this->timer = 0;
+				this->animTimer = 0;
 			} else {
-				this->timer = 0;
+				this->animTimer = 0;
 				this->patAnimation.setFrameForEntry(3, 0);
 				this->walkTimer = 2;
 			}
@@ -390,7 +411,7 @@ int dMegaMario_c::onExecute() {
 			else
 				speedFrameIncrease = 7;
 		}
-		this->timer++;
+		this->animTimer++;
 	}
 	else if(this->texState == 3)
 		this->patAnimation.setFrameForEntry(5, 0);
@@ -450,11 +471,19 @@ bool dMegaMario_c::calculateTileCollisions()
 	return false;
 }
 
+/* 		Idle 		*/
+void dMegaMario_c::beginState_Idle() 
+{}
+void dMegaMario_c::executeState_Idle() 
+{}
+void dMegaMario_c::endState_Idle() 
+{}
+
 /* 		Walk 		*/
 void dMegaMario_c::beginState_Walk() 
 {
 	this->timer = 0;
-
+	
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
@@ -467,7 +496,28 @@ void dMegaMario_c::beginState_Walk()
 
 void dMegaMario_c::executeState_Walk() 
 {
+	this->timer++;
+
 	bool turn = calculateTileCollisions();
+
+    int timeLeft = MEGA_TOTAL_TIME - this->timer;
+
+    // --- FLASHING when 15 seconds remain ---
+    if (timeLeft <= MEGA_FLASH_TIME) {
+        this->flashTimer++;
+
+        // flash frames
+        if ((this->flashTimer % 10) == 0) {
+            this->markInvisible = !this->markInvisible;
+        }
+    }
+
+    // times up!
+    if (this->timer >= MEGA_TOTAL_TIME) {
+        this->markInvisible = false;
+		this->finishingUp = true;
+        this->doStateChange(&StateID_MegaOutro);
+    }
 }
 void dMegaMario_c::endState_Walk() 
 {}
@@ -512,6 +562,52 @@ void dMegaMario_c::executeState_SpawnScale() {
 void dMegaMario_c::endState_SpawnScale() {
 }
 
+/* 		Spawn Anim 		*/
+void dMegaMario_c::beginState_MegaOutro() {
+	timer = 0;
+
+	speed.x = speed.y = 0.0f;
+	max_speed.x = max_speed.y = 0.0f;
+}
+
+void dMegaMario_c::executeState_MegaOutro() {
+	timer++;
+
+	Vec bindPos = this->pos;
+	bindPos.y += 50.0f;
+	daPlayer->pos = bindPos;
+
+	if (timer == 7) {
+		scale = (Vec){2.0f, 2.0f, 2.0f};
+	}
+	else if (timer == 14) {
+		scale = (Vec){1.5f, 1.5f, 1.5f};
+	}
+	else if (timer == 21) {
+		scale = (Vec){1.0f, 1.0f, 1.0f};
+	}
+	else if (timer == 28) {
+		scale = (Vec){0.7f, 0.7f, 0.7f};
+	}
+	else if (timer == 35) {
+		scale = (Vec){1.0f, 1.0f, 1.0f};
+	}
+	else if (timer == 42) {
+		scale = (Vec){0.5f, 0.5f, 0.5f};
+	}
+	else if(timer == 49)
+	{
+		this->pos = this->originalPos;
+
+		daPlayer->states2.setState(&daPlBase_c::StateID_Jump);
+
+		doStateChange(&StateID_Idle); // transition to normal behavior
+	}
+}
+
+void dMegaMario_c::endState_MegaOutro() {
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 // PLAYER STATES
@@ -527,7 +623,7 @@ int turnHoldFrames;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
-	this->useDemoControl();
+	// this->useDemoControl();
 	jump = false;
 	turning = false;
 	turnHoldFrames = 0;
@@ -541,7 +637,7 @@ void daPlBase_c::executeState_MegaMario() {
 	if(megaMario->scale.x != 1.5f)
 		return;
 
-	OSReport("WE FOUND MEGA MARIO");
+	if(megaMario->finishingUp) return;
 	
 	someFlightRelatedFunction(this); // Handles x movement apparently
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
@@ -554,7 +650,7 @@ void daPlBase_c::executeState_MegaMario() {
 	float currentCap = (megaMario->max_speed.x < 0.0f) ? -megaMario->max_speed.x : megaMario->max_speed.x;
 	if (currentCap == 0.0f)
 		currentCap = baseMax;
-float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
+	float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
 	
 	if(con->heldButtons & WPAD_LEFT) {
 		if(megaMario->speed.x >= MAX_MEGA_SPEED) {
@@ -649,4 +745,5 @@ float speedCap = currentCap + (targetMax - currentCap) * 0.01f;
 		megaMario->texState = 2;
 }
 void daPlBase_c::endState_MegaMario() {
+	this->clearFlag(0xBB); // make mario visible again
 }
