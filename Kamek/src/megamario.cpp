@@ -593,16 +593,11 @@ void daPlBase_c::executeState_MegaMario() {
 	}
 
 	if (!(con->heldButtons & (WPAD_LEFT | WPAD_RIGHT))) {
-		if (megaMario->speed.x > 0) {
-			megaMario->speed.x -= SPD_INCREMENT;
-			if (megaMario->speed.x < 0)
-				megaMario->speed.x = 0;
-		}
-		else if (megaMario->speed.x < 0) {
-			megaMario->speed.x += SPD_INCREMENT;
-			if (megaMario->speed.x > 0)
-				megaMario->speed.x = 0;
-		}
+		float lerpFactor = onGround ? 0.04f : 0.015f;
+		float target = 0.0f;
+		megaMario->speed.x = megaMario->speed.x + (target - megaMario->speed.x) * lerpFactor;
+		if (megaMario->speed.x > -0.1f && megaMario->speed.x < 0.1f)
+			megaMario->speed.x = 0.0f;
 	}
 
 	megaMario->HandleXSpeed();
