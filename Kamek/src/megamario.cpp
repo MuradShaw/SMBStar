@@ -43,7 +43,8 @@ class dMegaMario_c : public daBoss {
 	bool wasOnGround;
 	bool canBreakThisLanding;
 	bool weJumped;
-    
+    int fazcheck;
+
     bool calculateTileCollisions();
 
 	void texPat_bindAnimChr_and_setUpdateRate(const char* name);
@@ -92,13 +93,13 @@ dActor_c* dMegaMario_c::build() {
 
 void dMegaMario_c::playerCollision(ActivePhysics *apThis, ActivePhysics *apOther)
 {
-	daPlBase_c *player = (daPlBase_c*)apOther->owner;
+	/*daPlBase_c *player = (daPlBase_c*)apOther->owner;
 
 	if(this->scale.x == 1.4f)
 	{
 		player->states2.setState(&daPlBase_c::StateID_MegaMario);
 		doStateChange(&StateID_SpawnScale);
-	}
+	}*/
 
 	return;
 }
@@ -110,13 +111,19 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 {
     u16 name = ((dEn_c*)apOther->owner)->name;
 
-	// Ignore all these
 	if (name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE
 		|| name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND 
 		|| name == EN_BLUE_COIN || name == EN_COIN_WATER || name == EN_REDCOIN || name == EN_GREENCOIN
-		|| name == EN_JUMPDAI || name == EN_ITEM) 
-		{ return; }
+		|| name == EN_JUMPDAI || name == EN_ITEM || name == EN_STAR_COIN) 
+		{ ((dEn_c*)apOther->owner)->pos = daPlayer->pos; return; }
 	
+	if (name == EN_NOKONOKO)
+	{
+		((dEn_c*)apOther->owner)->kill();
+		((dEn_c*)apOther->owner)->Delete(0);
+		return;
+	}
+
     ((dEn_c*)apOther->owner)->kill();
 
 	return;
@@ -238,7 +245,6 @@ int dMegaMario_c::onCreate()
 	_320 = 0.0f;
 	_324 = 16.0f;
 
-	// "These structs tell stupid collider what to collide with - these are from koopa troopa" - Very well spoken ~
 	static const lineSensor_s below(-5<<12, 5<<12, 0<<12);
 	static const pointSensor_s above(0<<12, 12<<12);
 	static const lineSensor_s adjacent(6<<12, 9<<12, 6<<12);
@@ -246,7 +252,9 @@ int dMegaMario_c::onCreate()
 	collMgr.init(this, &below, &above, &adjacent);
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 	
-	int size = 32; // MegaMario width in tiles
+	int size = 24; // MegaMario width in tiles
+
+	this->fazcheck = 0;
 
 	// BELOW SENSOR
 	belowSensor.flags =
@@ -282,9 +290,9 @@ int dMegaMario_c::onCreate()
 		SENSOR_BREAK_BRICK |
 		SENSOR_10000000;
 	
-	aboveSensor.lineA = -size << 12;
-	aboveSensor.lineB =  size << 12;
-	//aboveSensor.distanceFromCenter = 50;
+	aboveSensor.lineA = 20 << 12;
+	aboveSensor.lineB = -20 << 12;
+	aboveSensor.distanceFromCenter = 30;
 
 	// Register sensors
 	collMgr.init(this, &belowSensor, &aboveSensor, &adjacentSensor);
@@ -307,7 +315,18 @@ int dMegaMario_c::onExecute() {
 	updateModelMatrices();
 	bodyModel._vf1C();
 	
+	if(this->scale.x == 0.2f) 
+	{
+		daPlayer->states2.setState(&daPlBase_c::StateID_MegaMario);
+		doStateChange(&StateID_SpawnScale);
+	}
+	
 	if(this->scale.x != 1.5f) return;
+
+	if (strcmp(daPlayer->states2.getCurrentState()->getName(),
+           "daPlBase_c::MegaMario") != 0) {
+			daPlayer->states2.setState(&daPlBase_c::StateID_MegaMario);
+	}
 
 	Vec bindPos = this->pos;
 	bindPos.y += 50.0f;
@@ -335,6 +354,8 @@ int dMegaMario_c::onExecute() {
 	else {
 		belowSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_BREAK_BRICK);
 	}
+
+	this->fazcheck = (this->fazcheck) ? 0 : 1;
 
 	if(this->texState == 0)
 	{
@@ -368,6 +389,8 @@ int dMegaMario_c::onExecute() {
 	else
 		this->patAnimation.setFrameForEntry(0, 0);
 
+	this->collMgr.calculateAboveCollision(this->collMgr.outputMaybe);
+
 	return true;
 }
 
@@ -384,6 +407,7 @@ bool dMegaMario_c::calculateTileCollisions()
 	
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	collMgr.calculateBelowCollisionWithSmokeEffect();
+	
 
 	float xDelta = pos.x - last_pos.x;
 	if (xDelta >= 0.0f)
