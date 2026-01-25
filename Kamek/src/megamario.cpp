@@ -534,6 +534,13 @@ void daPlBase_c::executeState_MegaMario() {
 	
 	bool onGround = megaMario->collMgr.isOnTopOfTile();
 	float accelScale = onGround ? 1.0f : 0.50f;
+	float baseMax = MAX_MEGA_SPEED;
+	float boostMax = MAX_MEGA_SPEED * 1.5f;
+	float targetMax = (con->heldButtons & WPAD_ONE) ? boostMax : baseMax;
+	float currentCap = (megaMario->max_speed.x < 0.0f) ? -megaMario->max_speed.x : megaMario->max_speed.x;
+	if (currentCap == 0.0f)
+		currentCap = baseMax;
+	float speedCap = currentCap + (targetMax - currentCap) * 0.05f;
 	
 	if(con->heldButtons & WPAD_LEFT) {
 		if(megaMario->speed.x >= MAX_MEGA_SPEED)
@@ -544,9 +551,9 @@ void daPlBase_c::executeState_MegaMario() {
 
 		float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
 		megaMario->speed.x -= accel * accelScale;
-		if (megaMario->speed.x <= -MAX_MEGA_SPEED)
-			megaMario->speed.x = -MAX_MEGA_SPEED;
-		megaMario->max_speed.x = -MAX_MEGA_SPEED;
+		if (megaMario->speed.x <= -speedCap)
+			megaMario->speed.x = -speedCap;
+		megaMario->max_speed.x = -speedCap;
 
 		megaMario->rot.y = 0x8000;
 	}
@@ -560,9 +567,9 @@ void daPlBase_c::executeState_MegaMario() {
 
 		float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
 		megaMario->speed.x += accel * accelScale;
-		if (megaMario->speed.x >= MAX_MEGA_SPEED)
-			megaMario->speed.x = MAX_MEGA_SPEED;
-		megaMario->max_speed.x = MAX_MEGA_SPEED;
+		if (megaMario->speed.x >= speedCap)
+			megaMario->speed.x = speedCap;
+		megaMario->max_speed.x = speedCap;
 
 		megaMario->rot.y = 0;
 	}
