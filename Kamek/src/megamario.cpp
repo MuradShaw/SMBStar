@@ -338,7 +338,7 @@ int dMegaMario_c::onExecute() {
 	
 	bool onGround = collMgr.isOnTopOfTile();
 
-	if(this->speed.y >= 4.9f)
+	if(this->speed.y >= 8.3f)
 		this->weJumped = true;
 
 	// Detect landing from a jump
@@ -446,9 +446,9 @@ void dMegaMario_c::beginState_Walk()
 	this->max_speed.x = (direction) ? -0.5f : 0.5f;
 	this->speed.x = (direction) ? -0.5f : 0.5f;
 	
-	this->max_speed.y = -3.0;
-	this->speed.y = -3.0;
-	this->y_speed_inc = -0.1875;
+	this->max_speed.y = -6.0;
+	this->speed.y = -6.0;
+	this->y_speed_inc = -0.375;
 	
 	this->texState = 0;
 }
@@ -504,19 +504,21 @@ void dMegaMario_c::endState_SpawnScale() {
 ////////////////////////////////////////////////////////////////////////////////////
 // PLAYER STATES
 
-#define MAX_MEGA_SPEED 1.5f
-#define SPD_INCREMENT 0.25f
-#define SPD_TURN 0.05f
+#define MAX_MEGA_SPEED 3.0f
+#define SPD_INCREMENT 0.8f
+#define SPD_TURN 0.16f
 
 Vec oldPos;
 bool jump;
 bool turning;
+int turnHoldFrames;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
 	this->useDemoControl();
 	jump = false;
 	turning = false;
+	turnHoldFrames = 0;
 }
 void daPlBase_c::executeState_MegaMario() {
 	dMegaMario_c* megaMario = (dMegaMario_c*)FindActorByType(mega, 0);
@@ -533,76 +535,96 @@ void daPlBase_c::executeState_MegaMario() {
 	Remocon* con = GetRemoconMng()->controllers[this->settings % 4];
 	
 	bool onGround = megaMario->collMgr.isOnTopOfTile();
-	float accelScale = onGround ? 1.0f : 0.50f;
+	float accelScale = onGround ? 1.0f : 0.35f;
 	float baseMax = MAX_MEGA_SPEED;
 	float boostMax = MAX_MEGA_SPEED * 1.5f;
 	float targetMax = (con->heldButtons & WPAD_ONE) ? boostMax : baseMax;
 	float currentCap = (megaMario->max_speed.x < 0.0f) ? -megaMario->max_speed.x : megaMario->max_speed.x;
 	if (currentCap == 0.0f)
 		currentCap = baseMax;
-	float speedCap = currentCap + (targetMax - currentCap) * 0.05f;
+float speedCap = currentCap + (targetMax - currentCap) * 0.1f;
 	
 	if(con->heldButtons & WPAD_LEFT) {
-		if(megaMario->speed.x >= MAX_MEGA_SPEED)
+		if(megaMario->speed.x >= MAX_MEGA_SPEED) {
+			if (!turning)
+				turnHoldFrames = 8;
 			turning = true;
+		}
 
-		if(megaMario->speed.x <= 0)
-			turning = false;
-
-		float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
-		megaMario->speed.x -= accel * accelScale;
-		if (megaMario->speed.x <= -speedCap)
-			megaMario->speed.x = -speedCap;
-		megaMario->max_speed.x = -speedCap;
+		if (turning) {
+			if (turnHoldFrames > 0)
+				turnHoldFrames--;
+			else if (megaMario->speed.x <= 0.0f)
+				turning = false;
+			float turnLerp = 0.02f;
+			megaMario->speed.x = megaMario->speed.x + (0.0f - megaMario->speed.x) * turnLerp;
+		} else {
+			float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->speed.x -= accel * accelScale;
+		}
+		if (!turning) {
+			if (megaMario->speed.x <= -speedCap)
+				megaMario->speed.x = -speedCap;
+			megaMario->max_speed.x = -speedCap;
+		}
 
 		megaMario->rot.y = 0x8000;
 	}
 
 	if(con->heldButtons & WPAD_RIGHT) {
-		if(megaMario->speed.x <= -MAX_MEGA_SPEED)
+		if(megaMario->speed.x <= -MAX_MEGA_SPEED) {
+			if (!turning)
+				turnHoldFrames = 8;
 			turning = true;
+		}
 
-		if(megaMario->speed.x >= 0)
-			turning = false;
-
-		float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
-		megaMario->speed.x += accel * accelScale;
-		if (megaMario->speed.x >= speedCap)
-			megaMario->speed.x = speedCap;
-		megaMario->max_speed.x = speedCap;
+		if (turning) {
+			if (turnHoldFrames > 0)
+				turnHoldFrames--;
+			else if (megaMario->speed.x >= 0.0f)
+				turning = false;
+			float turnLerp = 0.02f;
+			megaMario->speed.x = megaMario->speed.x + (0.0f - megaMario->speed.x) * turnLerp;
+		} else {
+			float accel = (turning) ? SPD_TURN : SPD_INCREMENT;
+			megaMario->speed.x += accel * accelScale;
+		}
+		if (!turning) {
+			if (megaMario->speed.x >= speedCap)
+				megaMario->speed.x = speedCap;
+			megaMario->max_speed.x = speedCap;
+		}
 
 		megaMario->rot.y = 0;
 	}
 
 	if(con->nowPressed & WPAD_TWO && megaMario->collMgr.isOnTopOfTile())
 	{
-		megaMario->speed.y = 5.0f;
-		megaMario->max_speed.y = 5.0f;
+		megaMario->speed.y = 8.5f;
+		megaMario->max_speed.y = 8.5f;
 		megaMario->texState = 0; // set frame to jump
 	}
 
 	if(!megaMario->collMgr.isOnTopOfTile())
 	{
-		megaMario->speed.y -= 0.1;
-		megaMario->max_speed.y -= 0.25;
-		if (megaMario->max_speed.y < -4.0f)
+		megaMario->speed.y -= 0.15;
+		megaMario->max_speed.y -= 0.35;
+		if (megaMario->max_speed.y < -7.0f)
 		{
-			megaMario->max_speed.y = -4.5f;
+			megaMario->max_speed.y = -7.5f;
 		}
 		
 	}
 
 	if (!(con->heldButtons & (WPAD_LEFT | WPAD_RIGHT))) {
-		float lerpFactor = onGround ? 0.04f : 0.015f;
+		float lerpFactor = onGround ? 0.08f : 0.03f;
 		float target = 0.0f;
 		megaMario->speed.x = megaMario->speed.x + (target - megaMario->speed.x) * lerpFactor;
 		if (megaMario->speed.x > -0.1f && megaMario->speed.x < 0.1f)
 			megaMario->speed.x = 0.0f;
 	}
 
-	megaMario->HandleXSpeed();
-	megaMario->HandleYSpeed();
-	megaMario->doSpriteMovement();
+	// Movement is handled by the Mega Mario actor's state to avoid double-updating physics.
 
 	// TEXTURE ANIMS FOR MEGA MARIO SPRITE
 	if(megaMario->weJumped)
