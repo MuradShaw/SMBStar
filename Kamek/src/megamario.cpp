@@ -450,6 +450,9 @@ bool dMegaMario_c::calculateTileCollisions()
 	//else
 	//	aboveSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK);
 
+	if (collMgr.calculateAboveCollision(collMgr.outputMaybe) && speed.y > 0.0f)
+		speed.y = 0.0f;
+
 	float xDelta = pos.x - last_pos.x;
 	if(xDelta == 0 && !collMgr.isOnTopOfTile())
 	{	this->speed.x = 0.0f;
@@ -731,7 +734,7 @@ void daPlBase_c::executeState_MegaMario() {
 		}
 	}
 
-	if((megaMario->collMgr.outputMaybe & (0x15 << direction)) && !megaMario->collMgr.isOnTopOfTile())
+	if(megaMario->collMgr.outputMaybe & (0x15 << direction))
 	{
 		megaMario->speed.x = 0.0f;
 		megaMario->max_speed.x = 0.0f;

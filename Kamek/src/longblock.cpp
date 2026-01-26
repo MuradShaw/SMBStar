@@ -25,6 +25,8 @@ class daLongBlock_c : public daEnBlockMain_c {
 	dStageActor_c *item;
 	dStageActor_c *bigCoin;
 	
+	m3d::anmTexSrt_c body;
+
 	Vec coinL;
 	Vec coinR;
 	
@@ -67,10 +69,15 @@ int daLongBlock_c::onCreate() {
 	nw4r::g3d::ResMdl mdl = this->resFile.GetResMdl("block_long");
 	model.setup(mdl, &allocator, 0x108, 1, 0);
 	
+	nw4r::g3d::ResAnmTexSrt anmRes = this->resFile.GetResAnmTexSrt("scroll");
+	this->body.setup(mdl, anmRes, &this->allocator, 0, 1);
+	this->body.bindEntry(&model, anmRes, 0, 0);
+	this->model.bindAnim(&this->body, 0.0);
+
 	this->resFile.data = getResource("obj_block_long", "g3d/obj_block_long_empty.brres");
 	nw4r::g3d::ResMdl uMdl = this->resFile.GetResMdl("block_long");
 	usedModel.setup(uMdl, &allocator, 0x108, 1, 0);
-	
+
 	//usedBlockResFile.data = getResource("obj_block_long", "g3d/obj_block_long_empty.brres");
 	//usedModel.setup(resFile.GetResMdl("block_long"), &allocator, 0, 1, 0);
 	
@@ -123,7 +130,8 @@ int daLongBlock_c::onExecute() {
 	model._vf1C();
 	acState.execute();
 	physics.update();
-	
+	this->body.process();
+
 	matrix.translation(pos.x, pos.y, pos.z);
 	matrix.applyRotationYXZ(&rot.x, &rot.y, &rot.z);
 	
@@ -211,8 +219,8 @@ void daLongBlock_c::blockWasHit(bool isDown) {
 	this->itemSettings = 0 | (powerup << 0) | (((isDown) ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | (this->playerID + 8 << 16);
 	this->coinSettings = 0 | (0x2 << 0) | (((isDown) ? 3 : 2) << 18) | (4 << 9) | (2 << 10) | (this->playerID + 8 << 16);
 		
-	this->coinL = (Vec) {this->pos.x - 16, this->pos.y + ((isDown) ? -5 : -9), this->pos.z};
-	this->coinR = (Vec) {this->pos.x + 16, this->pos.y + ((isDown) ? -5 : -9), this->pos.z};
+	this->coinL = (Vec) {this->pos.x - 16, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};
+	this->coinR = (Vec) {this->pos.x + 16, this->pos.y + ((isDown) ? 1 : -2), this->pos.z};
 	//Vec itemPos = (Vec){this->pos.x, ((isDown) ? this->pos.y - 20 : this->pos.y - 5), this->pos.z};
 	
 	/*	Create our actors	*/
