@@ -12,7 +12,7 @@
 const char* MegaMarioArc[] = {"obj_mega", NULL};
 
 #define MEGA_TOTAL_TIME   (20 * 60)
-#define MEGA_FLASH_TIME   (5 * 60)
+#define MEGA_FLASH_TIME   (3 * 60)
 
 // apDebug.cpp debug drawer (sensor hitboxes)
 extern int APDebugDraw();
@@ -103,6 +103,9 @@ CREATE_STATE(daPlBase_c, MegaMario);
 const SpriteData MegaMarioData = {ProfileId::megamario, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
 Profile MegaMarioProfile(&dMegaMario_c::build, SpriteId::megamario, &MegaMarioData, ProfileId::megamario, ProfileId::megamario, "megamario", MegaMarioArc);
 
+extern "C" void *ShakeScreen(void *, unsigned int, unsigned int, unsigned int, unsigned int);
+extern "C" void* ScreenPositionClass;
+
 dActor_c* dMegaMario_c::build() {
 	void *buf = AllocFromGameHeap1(sizeof(dMegaMario_c));
 	return new(buf) dMegaMario_c;
@@ -130,7 +133,7 @@ void dMegaMario_c::spriteCollision(ActivePhysics *apThis, ActivePhysics *apOther
 
 	OSReport("COLLISION with %d\n", ((dActor_c*)apOther->owner)->name);
 
-	if(name == mega) return;
+	if(name == mega || name == bird) return;
 
 	if (name == EN_COIN || name == EN_EATCOIN || name == AC_BLOCK_COIN || name == EN_COIN_JUGEM || name == EN_COIN_ANGLE
 		|| name == EN_COIN_JUMP || name == EN_COIN_FLOOR || name == EN_COIN_VOLT || name == EN_COIN_WIND 
@@ -249,9 +252,9 @@ int dMegaMario_c::onCreate()
 	HitMeBaby.yDistToEdge = 60.0;
 	
 	HitMeBaby.category1 = 0x3;
-	HitMeBaby.category2 = 0x1;   // allow category2 sprites (coins, items)
-	HitMeBaby.bitfield1 = 0xFFFFFFFF;
-	HitMeBaby.bitfield2 = 0xFFFFFFFF;
+	HitMeBaby.category2 = 0x0;
+	HitMeBaby.bitfield1 = 0x4F;
+	HitMeBaby.bitfield2 = 0xFFBAFFFE;
 	HitMeBaby.unkShort1C = 0;
 	HitMeBaby.callback = &dEn_c::collisionCallback;
 	
@@ -312,7 +315,8 @@ int dMegaMario_c::onCreate()
 		SENSOR_LINE |
 		SENSOR_BREAK_BLOCK |
 		SENSOR_ACTIVATE_QUESTION |
-		SENSOR_HIT_OR_BREAK_BRICK;
+		SENSOR_BREAK_BRICK |
+		SENSOR_10000000;
 	
 	aboveSensor.lineA = -size << 12;
 	aboveSensor.lineB =  size << 12;
@@ -367,8 +371,12 @@ int dMegaMario_c::onExecute() {
 		this->weJumped = true;
 
 	// Detect landing from a jump
-	if (this->weJumped && onGround) {
+	if (!this->wasOnGround && onGround) {
 		canBreakThisLanding = true;
+
+		if(this->weJumped)
+			ShakeScreen(ScreenPositionClass, 0, 1, 0, 0); // add screenshake effect
+
 		this->weJumped = false;
 	}
 	else
@@ -437,16 +445,16 @@ bool dMegaMario_c::calculateTileCollisions()
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 	collMgr.calculateBelowCollisionWithSmokeEffect();
 	
-	if (speed.y > 0.0f)
+	//if (speed.y > 0.0f)
 		aboveSensor.flags |= SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK;
-	else
-		aboveSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK);
-
-	if (collMgr.calculateAboveCollision(collMgr.outputMaybe) && speed.y > 0.0f)
-		speed.y = 0.0f;
-	
+	//else
+	//	aboveSensor.flags &= ~(SENSOR_BREAK_BLOCK | SENSOR_ACTIVATE_QUESTION | SENSOR_HIT_OR_BREAK_BRICK);
 
 	float xDelta = pos.x - last_pos.x;
+	if(xDelta == 0 && !collMgr.isOnTopOfTile())
+	{	this->speed.x = 0.0f;
+		this->max_speed.x = 0.0f;}
+	
 	if (xDelta >= 0.0f)
 		direction = 0;
 	else
@@ -573,36 +581,36 @@ void dMegaMario_c::beginState_MegaOutro() {
 void dMegaMario_c::executeState_MegaOutro() {
 	timer++;
 
-	Vec bindPos = this->pos;
-	bindPos.y += 50.0f;
-	daPlayer->pos = bindPos;
+	if(this->timer < 49)
+		daPlayer->pos = this->pos;
 
 	if (timer == 7) {
-		scale = (Vec){2.0f, 2.0f, 2.0f};
+		scale = (Vec){1.49f, 1.49f, 1.49f};
 	}
 	else if (timer == 14) {
-		scale = (Vec){1.5f, 1.5f, 1.5f};
+		scale = (Vec){0.7f, 0.7f, 0.7f};
 	}
 	else if (timer == 21) {
 		scale = (Vec){1.0f, 1.0f, 1.0f};
 	}
 	else if (timer == 28) {
-		scale = (Vec){0.7f, 0.7f, 0.7f};
+		scale = (Vec){0.5f, 0.5f, 0.5f};
 	}
 	else if (timer == 35) {
-		scale = (Vec){1.0f, 1.0f, 1.0f};
-	}
-	else if (timer == 42) {
-		scale = (Vec){0.5f, 0.5f, 0.5f};
+		scale = (Vec){0.7f, 0.7f, 0.7f};
 	}
 	else if(timer == 49)
 	{
 		this->pos = this->originalPos;
-
-		daPlayer->states2.setState(&daPlBase_c::StateID_Jump);
-
-		doStateChange(&StateID_Idle); // transition to normal behavior
+		//SpawnEffect("Wm_ob_starcoinget", 0, &daPlayer->pos, &(S16Vec){0,0,0}, &(Vec){1.0, 1.0, 1.0});
+		
+		daPlayer->speed.x = 0.0f;
+		daPlayer->max_speed.x = 0.0f;
+		daPlayer->states2.setState(&dPlayer::StateID_Walk);
 	}
+
+	if(this->timer == 53)
+		daPlayer->clearFlag(0xBB); // make mario visible again
 }
 
 void dMegaMario_c::endState_MegaOutro() {
@@ -613,7 +621,7 @@ void dMegaMario_c::endState_MegaOutro() {
 // PLAYER STATES
 
 #define MAX_MEGA_SPEED 3.0f
-#define SPD_INCREMENT 0.5f
+#define SPD_INCREMENT 1.2f
 #define SPD_TURN 0.1f
 
 Vec oldPos;
@@ -623,7 +631,7 @@ int turnHoldFrames;
 
 void daPlBase_c::beginState_MegaMario() {
 	this->setFlag(0xBB); // invis
-	// this->useDemoControl();
+	//this->useDemoControl();
 	jump = false;
 	turning = false;
 	turnHoldFrames = 0;
@@ -721,7 +729,12 @@ void daPlBase_c::executeState_MegaMario() {
 		{
 			megaMario->max_speed.y = -7.5f;
 		}
-		
+	}
+
+	if((megaMario->collMgr.outputMaybe & (0x15 << direction)) && !megaMario->collMgr.isOnTopOfTile())
+	{
+		megaMario->speed.x = 0.0f;
+		megaMario->max_speed.x = 0.0f;
 	}
 
 	if (!(con->heldButtons & (WPAD_LEFT | WPAD_RIGHT))) {
@@ -743,7 +756,9 @@ void daPlBase_c::executeState_MegaMario() {
 		megaMario->texState = 1;
 	else
 		megaMario->texState = 2;
+
+	if(megaMario->speed.y > 0)
+		megaMario->texState = 0;
 }
 void daPlBase_c::endState_MegaMario() {
-	this->clearFlag(0xBB); // make mario visible again
 }

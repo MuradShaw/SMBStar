@@ -38,6 +38,7 @@ SECTIONS {
 	
 	/* Horizon */
 	returnFromBGFix = 0x80115e5c;
+	returnFromHijack = 0x800d8f6c;
 
 	/* Player */
 	StateID_Jump__10daPlBase_c = 0x80375f6c;

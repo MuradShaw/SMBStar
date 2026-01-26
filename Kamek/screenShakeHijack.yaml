@@ -1,0 +1,8 @@
+---
+source_files: [../src/screenShakeHijack.S]
+hooks:
+  - name: newMultiplierType
+    type: branch_insn
+    branch_type: b
+    src_addr_pal: 0x800d8f68
+    target_func: 'reduceMultiplier'

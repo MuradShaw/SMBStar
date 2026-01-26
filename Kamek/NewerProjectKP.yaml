@@ -86,6 +86,7 @@ modules:
   - processed/smw_throws.yaml
   - cameraScrollLimiter.yaml
   - processed/quickhax.yaml
+  # - processed/screenShakeHijack.yaml
   
   # Actors
   - processed/powerstar.yaml
