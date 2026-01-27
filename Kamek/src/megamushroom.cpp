@@ -27,7 +27,7 @@ class dMegaMushroom_c : public daBoss {
     
     mEf::es2 glow;
 
-    int timer;
+    float timer;
     int Baseline;
     u32 cmgr_returnValue;
     
@@ -57,10 +57,12 @@ class dMegaMushroom_c : public daBoss {
 	
 	USING_STATES(dMegaMushroom_c);
 	DECLARE_STATE(Move);
+	DECLARE_STATE(Spawn);
 	DECLARE_STATE(Collect);
 };
 
 CREATE_STATE(dMegaMushroom_c, Move);
+CREATE_STATE(dMegaMushroom_c, Spawn);
 CREATE_STATE(dMegaMushroom_c, Collect);
 
 const SpriteData MegaData = {ProfileId::mega, 8, -0x10, 0, 0, 0x100, 0x100, 0, 0, 0, 0, 0};
@@ -194,7 +196,7 @@ int dMegaMushroom_c::onCreate()
 	this->aPhysics.initWithStruct(this, &HitMeBaby);
 	this->aPhysics.addToList();
 
-    this->direction = 1; // facing left
+    this->direction = 0; // facing left
     this->Baseline = this->pos.y;
 
     this->scale = (Vec){1.0, 1.0, 1.0};
@@ -213,7 +215,8 @@ int dMegaMushroom_c::onCreate()
 
 	cmgr_returnValue = collMgr.isOnTopOfTile();
 
-    doStateChange(&StateID_Move);
+	this->y_speed_inc = -0.1875;
+	doStateChange(&StateID_Move);
 
     this->onExecute();
     return true;
@@ -288,6 +291,14 @@ void dMegaMushroom_c::executeState_Move()
     HandleXSpeed();
     HandleYSpeed();
     doSpriteMovement();
+
+	if(!collMgr.isOnTopOfTile())
+	{
+		this->speed.y -= 0.02;
+
+		if(this->speed.y <= -2.0f)
+			this->speed.y = -2.0f;
+	}
 
     bool turn = calculateTileCollisions();
 	if(turn) {

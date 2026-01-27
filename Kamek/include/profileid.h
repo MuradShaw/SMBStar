@@ -537,6 +537,7 @@ enum
 	bird = 512,
 	mega = 513,
 	megamario = 514,
+	powerblock = 515,
 
 	Num
 };
@@ -1340,6 +1341,7 @@ enum
 	bird, //779
 	mega, //780
 	megamario, //781
+	powerblock, //782
 
 	Num
 };

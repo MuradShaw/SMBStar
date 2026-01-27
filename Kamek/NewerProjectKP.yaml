@@ -116,3 +116,4 @@ modules:
   - processed/birdDeco.yaml
   - processed/megamushroom.yaml
   - processed/megamario.yaml
+  - processed/powerBlock.yaml

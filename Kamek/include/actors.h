@@ -785,7 +785,8 @@ enum Actors {
 	itembox = 778,
 	bird = 779,
 	mega = 780,
-	megamario = 781
+	megamario = 781,
+	powerblock = 782
 };
 
 struct Actor {
